@@ -55,7 +55,6 @@ syn = { version = "2.0.16", features = ["full"] }
 proc-macro2 = "1.0.63"
 darling = "0.20.1"
 
-
 [patch."https://github.com/Rust-SDL2/rust-sdl2"]
 sdl2 = "0.35.2"
 

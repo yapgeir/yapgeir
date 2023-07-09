@@ -1,0 +1,48 @@
+[advisories]
+db-path = "~/.cargo/advisory-db"
+db-urls = ["https://github.com/rustsec/advisory-db"]
+vulnerability = "deny"
+unmaintained = "deny"
+yanked = "deny"
+notice = "deny"
+ignore = []
+
+[licenses]
+unlicensed = "deny"
+allow = ["MIT", "Apache-2.0", "BSD-3-Clause", "Zlib"]
+exceptions = [
+    { name = "unicode-ident", allow = [
+        "Unicode-DFS-2016",
+    ] },
+    { name = "epaint", allow = [
+        "OFL-1.1",
+        "LicenseRef-UFL-1.0",
+    ] },
+]
+copyleft = "deny"
+default = "deny"
+
+[bans]
+wildcards = "allow"
+highlight = "all"
+workspace-default-features = "allow"
+external-default-features = "allow"
+
+# YOLO
+multiple-versions = "warn"
+skip = [
+    { name = "syn", version = "1.0" },
+    { name = "indexmap", version = "1.9" },
+    { name = "hashbrown", version = "0.12" },
+    { name = "hashbrown", version = "0.13" },
+    { name = "ahash", version = "0.7" },
+]
+
+[sources]
+unknown-registry = "warn"
+unknown-git = "warn"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []
+
+[sources.allow-org]
+github = ["nikarh"]
