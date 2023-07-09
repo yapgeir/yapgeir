@@ -97,7 +97,7 @@ macro_rules! impl_system {
             fn run(&mut self, resources: &mut Resources) -> R {
                 self.0($(match $params::get(resources) {
                     Ok(r) => r,
-                    Err(error) => panic!("Unable to inject resource into system {}. {}", std::any::type_name::<F>(), error),
+                    Err(error) => panic!("Unable to inject resource into system {}.\n\t{}", std::any::type_name::<F>(), error),
                 }),*)
             }
         }

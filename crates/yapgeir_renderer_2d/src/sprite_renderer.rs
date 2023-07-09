@@ -98,8 +98,8 @@ const SHADER: TextShaderSource = TextShaderSource {
 pub struct SpriteVertex {
     pub position: [f32; 2],
     pub tex_position: [f32; 2],
-    __padding: [u8; 2],
     pub depth: u16,
+    __padding: [u8; 2],
 }
 
 impl SpriteVertex {

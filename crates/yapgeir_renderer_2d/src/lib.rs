@@ -9,7 +9,5 @@ pub mod sprite_renderer;
 pub mod texture_renderer;
 
 pub fn plugin<G: Graphics>(realm: &mut Realm) {
-    realm.initialize_resource_with(|ctx: Res<G>| {
-        QuadIndexBuffer::<G>::new(&ctx, 65532u16);
-    });
+    realm.initialize_resource_with(|ctx: Res<G>| QuadIndexBuffer::<G>::new(&ctx, 65532u16));
 }

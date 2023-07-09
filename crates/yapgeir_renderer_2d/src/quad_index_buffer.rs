@@ -12,10 +12,11 @@ use yapgeir_graphics_hal::{
 pub struct QuadIndexBuffer<G: Graphics>(IndexBinding<G>);
 
 #[inline]
-fn create_quad_indices<I>(quads: usize) -> Result<Vec<I>, TryFromIntError>
+fn create_quad_indices<I>(indices: usize) -> Result<Vec<I>, TryFromIntError>
 where
     I: TryFrom<usize, Error = TryFromIntError> + Index,
 {
+    let quads = indices / 6;
     let mut array = Vec::<I>::with_capacity(quads * 6);
     let mut quad = 0;
     while quad < quads {
