@@ -9,6 +9,10 @@ The goals of this project are:
 - 2D games are first-class citizens.
 - Turn-based games are first-class citizens.
 
+## Crates
+
+![Crate graph](/docs/dependencies.png)
+
 
 ## State of the project
 
