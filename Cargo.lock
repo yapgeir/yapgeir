@@ -1466,18 +1466,13 @@ version = "0.1.0"
 dependencies = [
  "bytemuck",
  "egui",
- "yapgeir_core",
- "yapgeir_events",
  "yapgeir_graphics_hal",
- "yapgeir_instrument",
- "yapgeir_realm",
 ]
 
 [[package]]
 name = "yapgeir_egui_sdl"
 version = "0.1.0"
 dependencies = [
- "bytemuck",
  "egui",
  "egui_sdl2_platform",
  "sdl2",
