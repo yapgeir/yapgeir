@@ -138,10 +138,7 @@ struct DrawResources<G: Graphics> {
 }
 
 impl<G: Graphics> DrawResources<G> {
-    fn new<'a>(ctx: &G) -> Self
-    where
-        G::ShaderSource: From<TextShaderSource<'a>>,
-    {
+    fn new<'a>(ctx: &G) -> Self {
         Self {
             shader: Rc::new(ctx.new_shader(&SHADER.into())),
             vertex_buffer: ctx.new_buffer(BufferKind::Vertex, BufferUsage::Stream, 2000),
@@ -196,10 +193,7 @@ pub struct EguiPainter<G: Graphics> {
 }
 
 impl<G: Graphics> EguiPainter<G> {
-    pub fn new<'a>(ctx: &G) -> Self
-    where
-        G::ShaderSource: From<TextShaderSource<'a>>,
-    {
+    pub fn new<'a>(ctx: &G) -> Self {
         Self {
             uniform_buffer: ctx.new_uniform_buffer(&EguiUniforms {
                 screen_size: [0., 0.],

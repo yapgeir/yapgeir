@@ -183,7 +183,7 @@ unsafe fn get_vertex_attributes(
 impl<B: Backend> Shader<Gles<B>> for GlesShader<B> {
     type Source = TextShaderSource<'static>;
 
-    fn new(ctx: Gles<B>, source: &Self::Source) -> Self {
+    fn new(ctx: Gles<B>, source: &TextShaderSource) -> Self {
         let gl = &ctx.gl;
 
         unsafe {

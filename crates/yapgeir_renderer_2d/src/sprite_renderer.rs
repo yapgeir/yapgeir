@@ -136,10 +136,7 @@ where
     G: Graphics,
     T: Borrow<G::Texture>,
 {
-    pub fn new<'a>(ctx: &G, quad_index_buffer: QuadIndexBuffer<G>) -> Self
-    where
-        G::ShaderSource: From<TextShaderSource<'a>>,
-    {
+    pub fn new<'a>(ctx: &G, quad_index_buffer: QuadIndexBuffer<G>) -> Self {
         let shader = Rc::new(ctx.new_shader(&SHADER.into()));
         let uniforms = Rc::new(ctx.new_uniform_buffer(&SpriteUniforms::default()));
 

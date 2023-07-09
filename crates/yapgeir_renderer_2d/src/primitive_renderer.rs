@@ -77,10 +77,7 @@ pub struct PrimitiveRenderer<G: Graphics> {
 }
 
 impl<G: Graphics> PrimitiveRenderer<G> {
-    pub fn new<'a>(ctx: &G) -> Self
-    where
-        G::ShaderSource: From<TextShaderSource<'a>>,
-    {
+    pub fn new<'a>(ctx: &G) -> Self {
         let shader = Rc::new(ctx.new_shader(&SHADER.into()));
         let uniforms = Rc::new(ctx.new_uniform_buffer(&PrimitiveUniforms::default()));
 

@@ -10,8 +10,7 @@ use shader::GlesShader;
 use texture::{GlesPixelFormat, GlesTexture};
 use uniforms::GlesUniformBuffer;
 use yapgeir_graphics_hal::{
-    buffer::BufferUsage, frame_buffer::RenderBufferFormat, shader::TextShaderSource, Backend,
-    Graphics,
+    buffer::BufferUsage, frame_buffer::RenderBufferFormat, Backend, Graphics,
 };
 
 mod buffer;
@@ -41,7 +40,6 @@ impl<B: Backend> Gles<B> {
 
 impl<B: Backend + 'static> Graphics for Gles<B> {
     type Shader = GlesShader<B>;
-    type ShaderSource = TextShaderSource<'static>;
     type PixelFormat = GlesPixelFormat;
     type Texture = GlesTexture<B>;
     type RenderBufferFormat = RenderBufferFormat;

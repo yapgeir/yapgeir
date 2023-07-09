@@ -76,10 +76,7 @@ pub fn render<'a, G: Graphics>(renderer: &mut EguiRenderer<G>, fb: &G::FrameBuff
 
 pub fn plugin<'a, G: Graphics, I, S: System<()> + 'static>(
     gui_system: impl IntoSystem<I, (), System = S>,
-) -> impl Plugin
-where
-    G::ShaderSource: From<TextShaderSource<'a>>,
-{
+) -> impl Plugin {
     move |realm: &mut Realm| {
         realm
             .initialize_resource_with(|sdl: Res<Rc<sdl2::video::Window>>, ppt: Res<Ppt>| {

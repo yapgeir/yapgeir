@@ -72,10 +72,7 @@ pub struct TextureRenderer<G: Graphics> {
 }
 
 impl<G: Graphics> TextureRenderer<G> {
-    pub fn new<'a>(ctx: &G) -> Self
-    where
-        G::ShaderSource: From<TextShaderSource<'a>>,
-    {
+    pub fn new<'a>(ctx: &G) -> Self {
         let shader = Rc::new(ctx.new_shader(&SHADER.into()));
         let vertices = ctx.new_buffer(
             BufferKind::Vertex,

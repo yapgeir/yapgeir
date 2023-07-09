@@ -9,5 +9,5 @@ pub struct TextShaderSource<'a> {
 pub trait Shader<G: Graphics> {
     type Source;
 
-    fn new(renderer: G, source: &Self::Source) -> Self;
+    fn new(renderer: G, source: &TextShaderSource) -> Self;
 }

@@ -6,7 +6,7 @@ use draw_descriptor::{DrawDescriptor, IndexBinding, VertexBindings};
 use frame_buffer::{
     DepthStencilAttachment, FrameBuffer, ReadFormat, RenderBuffer, RenderBufferFormat,
 };
-use shader::Shader;
+use shader::{Shader, TextShaderSource};
 use texture::{PixelFormat, Texture};
 use uniforms::{UniformBuffer, Uniforms};
 
@@ -38,8 +38,7 @@ pub trait Graphics
 where
     Self: Sized + Clone + 'static,
 {
-    type ShaderSource;
-    type Shader: Shader<Self, Source = Self::ShaderSource>;
+    type Shader: Shader<Self>;
     type PixelFormat: From<PixelFormat>;
     type Texture: Texture<Self, PixelFormat = Self::PixelFormat>;
     type RenderBufferFormat: From<RenderBufferFormat>;
@@ -55,11 +54,11 @@ where
         Self::FrameBuffer::default(self.clone())
     }
 
-    fn new_shader<'a>(&self, source: impl Into<&'a Self::ShaderSource>) -> Self::Shader
+    fn new_shader<'a>(&self, source: &TextShaderSource) -> Self::Shader
     where
         Self: 'a,
     {
-        Self::Shader::new(self.clone(), source.into())
+        Self::Shader::new(self.clone(), source)
     }
 
     fn new_buffer<'a, T: Pod>(
