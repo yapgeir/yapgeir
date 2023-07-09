@@ -68,7 +68,7 @@ impl<G: Graphics, V: Vertex + Pod, U: Uniforms + Pod, T: Borrow<G::Texture>>
     BatchRenderer<G, V, U, T>
 {
     pub fn new<'a>(
-        ctx: G,
+        ctx: &G,
         shader: Rc<G::Shader>,
         indices: BatchIndices<G>,
         textures: Vec<SamplerAttribute<G, T>>,

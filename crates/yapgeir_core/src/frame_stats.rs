@@ -2,7 +2,7 @@ use yapgeir_realm::{Realm, Res, ResMut};
 use yapgeir_reflection::bevy_reflect::Reflect;
 use yapgeir_reflection::{bevy_reflect, RealmExtensions};
 
-use crate::{Delta, Frame};
+use crate::Delta;
 
 #[derive(Default, Reflect)]
 pub struct FrameStats {
@@ -32,11 +32,7 @@ fn update(mut frame: ResMut<FrameStats>, delta: Res<Delta>) {
 
 pub fn plugin(realm: &mut Realm) {
     realm
-        .register_type::<Delta>()
-        .register_type::<Frame>()
         .register_type::<FrameStats>()
-        .initialize_resource::<Delta>()
-        .initialize_resource::<Frame>()
         .initialize_resource::<FrameStats>()
         .add_system(update);
 }

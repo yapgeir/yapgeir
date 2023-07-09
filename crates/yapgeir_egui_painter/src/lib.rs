@@ -138,7 +138,7 @@ struct DrawResources<G: Graphics> {
 }
 
 impl<G: Graphics> DrawResources<G> {
-    fn new<'a>(ctx: G) -> Self
+    fn new<'a>(ctx: &G) -> Self
     where
         G::ShaderSource: From<TextShaderSource<'a>>,
     {
@@ -147,7 +147,7 @@ impl<G: Graphics> DrawResources<G> {
             vertex_buffer: ctx.new_buffer(BufferKind::Vertex, BufferUsage::Stream, 2000),
             index_buffer: ctx.new_buffer(BufferKind::Index, BufferUsage::Stream, 2000),
             draw_descriptor: None,
-            ctx,
+            ctx: ctx.clone(),
         }
     }
 
@@ -196,7 +196,7 @@ pub struct EguiPainter<G: Graphics> {
 }
 
 impl<G: Graphics> EguiPainter<G> {
-    pub fn new<'a>(ctx: G) -> Self
+    pub fn new<'a>(ctx: &G) -> Self
     where
         G::ShaderSource: From<TextShaderSource<'a>>,
     {

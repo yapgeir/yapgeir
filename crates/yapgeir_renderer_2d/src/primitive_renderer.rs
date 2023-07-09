@@ -77,7 +77,7 @@ pub struct PrimitiveRenderer<G: Graphics> {
 }
 
 impl<G: Graphics> PrimitiveRenderer<G> {
-    pub fn new<'a>(ctx: G) -> Self
+    pub fn new<'a>(ctx: &G) -> Self
     where
         G::ShaderSource: From<TextShaderSource<'a>>,
     {
@@ -85,7 +85,7 @@ impl<G: Graphics> PrimitiveRenderer<G> {
         let uniforms = Rc::new(ctx.new_uniform_buffer(&PrimitiveUniforms::default()));
 
         let lines = BatchRenderer::new(
-            ctx.clone(),
+            ctx,
             shader.clone(),
             BatchIndices::Primitive(PrimitiveMode::Lines),
             vec![],

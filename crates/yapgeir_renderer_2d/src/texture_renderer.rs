@@ -69,17 +69,14 @@ struct BlitVertex {
 
 pub struct TextureRenderer<G: Graphics> {
     draw_descriptor: G::DrawDescriptor,
-    draw_params: DrawParameters,
 }
 
 impl<G: Graphics> TextureRenderer<G> {
-    pub fn new<'a>(ctx: G) -> Self
+    pub fn new<'a>(ctx: &G) -> Self
     where
         G::ShaderSource: From<TextShaderSource<'a>>,
     {
-        let draw_params = DrawParameters::default();
         let shader = Rc::new(ctx.new_shader(&SHADER.into()));
-
         let vertices = ctx.new_buffer(
             BufferKind::Vertex,
             BufferUsage::Static,
@@ -94,16 +91,18 @@ impl<G: Graphics> TextureRenderer<G> {
         let draw_descriptor =
             ctx.new_draw_descriptor(shader, IndexBinding::None, &[vertices.bindings()]);
 
-        Self {
-            draw_descriptor,
-            draw_params,
-        }
+        Self { draw_descriptor }
     }
 
-    pub fn render<'t>(&self, surface: &impl FrameBuffer<G>, sampler: Sampler<G, &'t G::Texture>) {
+    pub fn render<'t>(
+        &self,
+        surface: &impl FrameBuffer<G>,
+        sampler: Sampler<G, &'t G::Texture>,
+        draw_parameters: &DrawParameters,
+    ) {
         surface.draw::<()>(
             &self.draw_descriptor,
-            &self.draw_params,
+            draw_parameters,
             &SamplerAttribute::named([("tex", &sampler)]),
             None,
             &Indices {

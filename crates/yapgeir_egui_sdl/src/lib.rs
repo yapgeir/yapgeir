@@ -1,4 +1,4 @@
-use std::{rc::Rc, time::Instant};
+use std::{ops::Deref, rc::Rc, time::Instant};
 
 use egui_sdl2_platform::Platform;
 use yapgeir_core::Ppt;
@@ -86,7 +86,7 @@ where
                 Gui::new(sdl.drawable_size().into(), *ppt)
             })
             .initialize_resource_with(|ctx: Res<G>| EguiRenderer {
-                painter: EguiPainter::new(ctx.clone()),
+                painter: EguiPainter::new(ctx.deref()),
                 data: Default::default(),
             })
             .add_system(process_input)

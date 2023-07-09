@@ -26,9 +26,10 @@ pub trait RealmExtensions {
 impl RealmExtensions for Realm {
     fn register_type<T: GetTypeRegistration>(&mut self) -> &mut Self {
         self.run_system(|resources: &mut Resources| {
-            let mut registry = resources
-                .get_mut::<TypeRegistry>()
-                .expect("TypeRegistry is not registered as a resource!");
+            let mut registry = match resources.get_mut::<TypeRegistry>() {
+                Some(registry) => registry,
+                None => return,
+            };
 
             registry.add_registration(T::get_type_registration());
         });

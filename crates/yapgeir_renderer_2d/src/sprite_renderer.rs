@@ -1,6 +1,6 @@
 use bytemuck::{Pod, Zeroable};
 use derive_more::{Deref, DerefMut};
-use std::rc::Rc;
+use std::{borrow::Borrow, rc::Rc};
 use yapgeir_graphics_hal::{
     draw_params::Blend,
     draw_params::{
@@ -126,10 +126,17 @@ pub struct SpriteSamplers<G: Graphics> {
 }
 
 #[derive(Deref, DerefMut)]
-pub struct SpriteRenderer<G: Graphics>(BatchRenderer<G, SpriteVertex, SpriteUniforms, G::Texture>);
+pub struct SpriteRenderer<G, T>(BatchRenderer<G, SpriteVertex, SpriteUniforms, T>)
+where
+    G: Graphics,
+    T: Borrow<G::Texture>;
 
-impl<G: Graphics> SpriteRenderer<G> {
-    pub fn new<'a>(ctx: G, quad_index_buffer: QuadIndexBuffer<G>) -> Self
+impl<G, T> SpriteRenderer<G, T>
+where
+    G: Graphics,
+    T: Borrow<G::Texture>,
+{
+    pub fn new<'a>(ctx: &G, quad_index_buffer: QuadIndexBuffer<G>) -> Self
     where
         G::ShaderSource: From<TextShaderSource<'a>>,
     {
@@ -163,7 +170,7 @@ impl<G: Graphics> SpriteRenderer<G> {
         ))
     }
 
-    pub fn set_texture(&mut self, sampler: Sampler<G, G::Texture>) {
+    pub fn set_texture(&mut self, sampler: Sampler<G, T>) {
         self.textures.clear();
         self.textures.push(SamplerAttribute {
             name: "tex",
