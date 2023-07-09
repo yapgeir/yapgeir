@@ -1,0 +1,9 @@
+[package]
+name = "yapgeir_world_2d"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+yapgeir_reflection = { path = "../yapgeir_reflection" }
+nalgebra.workspace = true
+derive_more.workspace = true

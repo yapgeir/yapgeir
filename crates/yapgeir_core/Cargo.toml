@@ -1,0 +1,10 @@
+[package]
+name = "yapgeir_core"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+yapgeir_realm = { path = "../yapgeir_realm" }
+yapgeir_reflection = { path = "../yapgeir_reflection" }
+derive_more.workspace = true
+smart-default.workspace = true

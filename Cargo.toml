@@ -1,0 +1,61 @@
+[workspace]
+members = ["crates/*", "crates/*/macro"]
+resolver = "2"
+
+[workspace.dependencies]
+anyhow = "1.0.70"
+thiserror = "1.0"
+strum = { version = "0.24.1", features = ["derive"] }
+num_enum = "0.6.1"
+enum-map = "2.5.0"
+derive_more = { version = "0.99", features = [
+    "constructor",
+    "from",
+    "as_ref",
+    "deref",
+    "deref_mut",
+    "display",
+], default-features = false }
+indexmap = "2.0.0"
+bitvec = { version = "1", default-features = false, features = ["std"] }
+bitm = "0.2.2"
+bytemuck = { version = "1.13.1", features = ["derive"] }
+rand = "0.8.5"
+smart-default = "0.7.1"
+const_format = "0.2.31"
+by_address = "1.1.0"
+
+serde = { version = "1.0.164", features = ["derive"] }
+serde_json = "1.0.96"
+serde_yaml = "0.9.21"
+
+hecs = "0.10.3"
+nalgebra = { version = "0.32.2", features = ["serde-serialize"] }
+rapier2d = { version = "0.17.2", features = ["debug-render"] }
+
+sdl2 = { version = "0.35.2" }
+glow = { version = "0.12.2" }
+
+lodepng = "3.4"
+rgb = "*"
+tween = "2.0.1"
+float-cmp = "0.9.0"
+anymap = "0.12.1"
+egui_sdl2_platform = { git = "https://github.com/nikarh/egui_sdl2_platform", branch = "main" }
+egui = { version = "0.22.0", features = ["bytemuck"] }
+
+bevy_reflect = "0.10.1"
+
+# Macros
+paste = "1.0.12"
+
+# Declarative macros
+quote = "1.0.27"
+syn = { version = "2.0.16", features = ["full"] }
+proc-macro2 = "1.0.63"
+darling = "0.20.1"
+
+
+[patch."https://github.com/Rust-SDL2/rust-sdl2"]
+sdl2 = "0.35.2"
+

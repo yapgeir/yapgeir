@@ -1,0 +1,13 @@
+[package]
+name = "yapgeir_graphics_hal_gles2"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+yapgeir_graphics_hal = { path = "../yapgeir_graphics_hal" }
+glow.workspace = true
+derive_more.workspace = true
+bytemuck.workspace = true
+enum-map.workspace = true
+smart-default.workspace = true
+bitvec.workspace = true

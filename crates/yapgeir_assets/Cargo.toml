@@ -1,0 +1,16 @@
+[package]
+name = "yapgeir_assets"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+yapgeir_geometry = { path = "../yapgeir_geometry" }
+derive_more.workspace = true
+nalgebra.workspace = true
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+serde_yaml.workspace = true
+# png crate crashes on vita
+lodepng.workspace = true
+rgb.workspace = true

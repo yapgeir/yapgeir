@@ -1,0 +1,8 @@
+[package]
+name = "yapgeir_realm"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+yapgeir_realm_macro = { path = "./macro" }
+derive_more.workspace = true

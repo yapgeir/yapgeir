@@ -1,0 +1,14 @@
+[package]
+name = "yapgeir_instrument"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+allocations = []
+
+[dependencies]
+yapgeir_instrument_macro = { path = "./macro" }
+yapgeir_core = { path = "../yapgeir_core" }
+yapgeir_realm = { path = "../yapgeir_realm" }
+indexmap.workspace = true
+by_address.workspace = true

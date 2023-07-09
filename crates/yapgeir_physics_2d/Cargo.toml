@@ -1,0 +1,14 @@
+[package]
+name = "yapgeir_physics_2d"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+yapgeir_core = { path = "../yapgeir_core" }
+yapgeir_realm = { path = "../yapgeir_realm" }
+yapgeir_reflection = { path = "../yapgeir_reflection" }
+yapgeir_world_2d = { path = "../yapgeir_world_2d" }
+derive_more.workspace = true
+hecs.workspace = true
+nalgebra.workspace = true
+rapier2d.workspace = true

@@ -1,0 +1,8 @@
+[package]
+name = "yapgeir_geometry"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+nalgebra.workspace = true
+derive_more.workspace = true

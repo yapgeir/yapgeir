@@ -1,0 +1,15 @@
+[package]
+name = "yapgeir_world_2d_sprites"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+yapgeir_realm = { path = "../yapgeir_realm" }
+yapgeir_reflection = { path = "../yapgeir_reflection" }
+yapgeir_world_2d = { path = "../yapgeir_world_2d" }
+yapgeir_assets = { path = "../yapgeir_assets" }
+yapgeir_collections = { path = "../yapgeir_collections" }
+yapgeir_core = { path = "../yapgeir_core" }
+nalgebra.workspace = true
+derive_more.workspace = true
+hecs.workspace = true

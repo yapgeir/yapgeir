@@ -1,0 +1,12 @@
+[package]
+name = "yapgeir_sdl"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+yapgeir_realm = { path = "../yapgeir_realm" }
+yapgeir_core = { path = "../yapgeir_core" }
+yapgeir_input = { path = "../yapgeir_input" }
+yapgeir_events = { path = "../yapgeir_events" }
+sdl2.workspace = true
+nalgebra.workspace = true

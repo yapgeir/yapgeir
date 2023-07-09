@@ -1,0 +1,11 @@
+[package]
+name = "yapgeir_renderer_2d"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+yapgeir_realm = { path = "../yapgeir_realm" }
+yapgeir_graphics_hal = { path = "../yapgeir_graphics_hal" }
+derive_more.workspace = true
+nalgebra.workspace = true
+bytemuck.workspace = true
