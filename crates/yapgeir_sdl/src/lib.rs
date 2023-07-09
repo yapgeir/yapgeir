@@ -1,6 +1,8 @@
 use nalgebra::Vector2;
 use yapgeir_realm::{Plugin, Realm};
 
+pub use sdl2;
+
 pub mod events;
 pub mod input;
 pub mod timer;
