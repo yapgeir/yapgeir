@@ -1461,7 +1461,20 @@ dependencies = [
 ]
 
 [[package]]
-name = "yapgeir_egui"
+name = "yapgeir_egui_painter"
+version = "0.1.0"
+dependencies = [
+ "bytemuck",
+ "egui",
+ "yapgeir_core",
+ "yapgeir_events",
+ "yapgeir_graphics_hal",
+ "yapgeir_instrument",
+ "yapgeir_realm",
+]
+
+[[package]]
+name = "yapgeir_egui_sdl"
 version = "0.1.0"
 dependencies = [
  "bytemuck",
@@ -1469,6 +1482,7 @@ dependencies = [
  "egui_sdl2_platform",
  "sdl2",
  "yapgeir_core",
+ "yapgeir_egui_painter",
  "yapgeir_events",
  "yapgeir_graphics_hal",
  "yapgeir_instrument",

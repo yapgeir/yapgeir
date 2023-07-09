@@ -1,28 +1,20 @@
 use std::{rc::Rc, time::Instant};
 
-use egui::{ClippedPrimitive, TexturesDelta};
 use egui_sdl2_platform::Platform;
-use painter::GuiPainter;
 use yapgeir_core::Ppt;
+use yapgeir_egui_painter::{EguiDrawData, EguiPainter};
 use yapgeir_events::Events;
 use yapgeir_graphics_hal::{shader::TextShaderSource, Graphics, ImageSize};
 use yapgeir_realm::{IntoSystem, Plugin, Realm, Res, ResMut, System};
 
-mod painter;
-
-pub struct GuiDrawData {
-    meshes: Vec<ClippedPrimitive>,
-    delta: TexturesDelta,
+pub struct EguiRenderer<G: Graphics> {
+    painter: EguiPainter<G>,
+    data: EguiDrawData,
 }
 
 pub struct Gui {
     platform: Platform,
     start_time: Instant,
-}
-
-pub struct GuiRenderer<G: Graphics> {
-    painter: GuiPainter<G>,
-    data: Option<GuiDrawData>,
 }
 
 impl Gui {
@@ -64,7 +56,7 @@ fn process_input(
 #[cfg_attr(feature = "instrumentation", yapgeir_instrument::instrument)]
 fn tesselate<G: Graphics>(
     mut gui: ResMut<Gui>,
-    mut renderer: ResMut<GuiRenderer<G>>,
+    mut renderer: ResMut<EguiRenderer<G>>,
     mut video: ResMut<sdl2::VideoSubsystem>,
 ) {
     let full_output = gui
@@ -72,16 +64,14 @@ fn tesselate<G: Graphics>(
         .end_frame(&mut video)
         .expect("Unable to end frame");
 
-    renderer.data = Some(GuiDrawData {
+    renderer.data = EguiDrawData {
         meshes: gui.platform.tessellate(&full_output),
         delta: full_output.textures_delta,
-    });
+    };
 }
 
-pub fn render<'a, G: Graphics>(renderer: &mut GuiRenderer<G>, fb: &G::FrameBuffer, ppt: Ppt) {
-    if let Some(data) = renderer.data.as_ref() {
-        renderer.painter.paint(fb, *ppt, data);
-    }
+pub fn render<'a, G: Graphics>(renderer: &mut EguiRenderer<G>, fb: &G::FrameBuffer, ppt: Ppt) {
+    renderer.painter.paint(fb, *ppt, &renderer.data);
 }
 
 pub fn plugin<'a, G: Graphics, I, S: System<()> + 'static>(
@@ -95,9 +85,9 @@ where
             .initialize_resource_with(|sdl: Res<Rc<sdl2::video::Window>>, ppt: Res<Ppt>| {
                 Gui::new(sdl.drawable_size().into(), *ppt)
             })
-            .initialize_resource_with(|ctx: Res<G>| GuiRenderer {
-                painter: GuiPainter::new(ctx.clone()),
-                data: None,
+            .initialize_resource_with(|ctx: Res<G>| EguiRenderer {
+                painter: EguiPainter::new(ctx.clone()),
+                data: Default::default(),
             })
             .add_system(process_input)
             .add_system(gui_system)

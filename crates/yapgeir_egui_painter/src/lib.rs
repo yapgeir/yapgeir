@@ -3,7 +3,7 @@ use std::{collections::HashMap, mem::size_of};
 use bytemuck::{Pod, Zeroable};
 use egui::{
     epaint::{textures::TextureFilter, Primitive, Vertex},
-    Color32,
+    ClippedPrimitive, Color32, TexturesDelta,
 };
 use yapgeir_graphics_hal::{
     buffer::{Buffer, BufferKind, BufferUsage},
@@ -20,7 +20,11 @@ use yapgeir_graphics_hal::{
     Graphics, ImageSize, Rect,
 };
 
-use crate::GuiDrawData;
+#[derive(Default)]
+pub struct EguiDrawData {
+    pub meshes: Vec<ClippedPrimitive>,
+    pub delta: TexturesDelta,
+}
 
 use {egui::epaint::Mesh, std::rc::Rc};
 
@@ -185,13 +189,13 @@ impl<G: Graphics> DrawResources<G> {
     }
 }
 
-pub struct GuiPainter<G: Graphics> {
+pub struct EguiPainter<G: Graphics> {
     resources: DrawResources<G>,
     uniform_buffer: G::UniformBuffer<EguiUniforms>,
     samplers: HashMap<egui::TextureId, Sampler<G, G::Texture>>,
 }
 
-impl<G: Graphics> GuiPainter<G> {
+impl<G: Graphics> EguiPainter<G> {
     pub fn new<'a>(ctx: G) -> Self
     where
         G::ShaderSource: From<TextShaderSource<'a>>,
@@ -205,11 +209,11 @@ impl<G: Graphics> GuiPainter<G> {
         }
     }
 
-    pub(crate) fn paint(
+    pub fn paint(
         &mut self,
         fb: &G::FrameBuffer,
         pixels_per_point: f32,
-        GuiDrawData { delta, meshes }: &GuiDrawData,
+        EguiDrawData { delta, meshes }: &EguiDrawData,
     ) {
         for (id, image_delta) in &delta.set {
             match &image_delta.image {

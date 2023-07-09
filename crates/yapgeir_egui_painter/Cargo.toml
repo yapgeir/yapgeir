@@ -1,5 +1,5 @@
 [package]
-name = "yapgeir_egui"
+name = "yapgeir_egui_painter"
 version = "0.1.0"
 edition = "2021"
 
@@ -12,7 +12,5 @@ yapgeir_realm = { path = "../yapgeir_realm" }
 yapgeir_events = { path = "../yapgeir_events" }
 yapgeir_graphics_hal = { path = "../yapgeir_graphics_hal" }
 yapgeir_instrument = { path = "../yapgeir_instrument", optional = true }
-egui_sdl2_platform.workspace = true
-sdl2.workspace = true
 bytemuck.workspace = true
 egui.workspace = true
