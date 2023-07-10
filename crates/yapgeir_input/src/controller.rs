@@ -1,5 +1,4 @@
 use derive_more::Constructor;
-use nalgebra::Vector2;
 use strum::EnumCount;
 
 use crate::buttons::{u32_blocks, Buttons, CastToUsize};
@@ -44,8 +43,8 @@ impl CastToUsize for GamepadButton {
 #[derive(Default)]
 pub struct Gamepad {
     pub buttons: Buttons<BLOCKS, GamepadButton>,
-    pub left_stick: Vector2<i16>,
-    pub right_stick: Vector2<i16>,
+    pub left_stick: (i16, i16),
+    pub right_stick: (i16, i16),
     pub left_trigger: i16,
     pub right_trigger: i16,
 }

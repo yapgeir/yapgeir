@@ -15,11 +15,11 @@ use yapgeir_reflection::{bevy_reflect::Reflect, RealmExtensions};
 
 use super::sprites::Drawable;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Constructor, Reflect, FromReflect)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Constructor, Reflect)]
 pub struct AnimationSequenceKey(u16);
 
 // This is they key that should be used to access entities
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Reflect, FromReflect)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Reflect)]
 pub struct AnimationKey(AnimationSequenceKey, u8);
 
 #[derive(Default, Deref, DerefMut, Debug)]
@@ -52,7 +52,7 @@ impl Index<AnimationKey> for AnimationStorage {
     }
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Reflect, FromReflect)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Reflect)]
 pub struct Frame {
     pub index: u8,
     #[reflect(ignore)]

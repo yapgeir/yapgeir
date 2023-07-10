@@ -75,10 +75,10 @@ fn update(
                     .get_mut(&GamepadId::new(*which))
                     .expect("gamepad not found");
                 match axis {
-                    Axis::LeftX => gamepad.left_stick.x = *value,
-                    Axis::LeftY => gamepad.left_stick.y = *value,
-                    Axis::RightX => gamepad.right_stick.x = *value,
-                    Axis::RightY => gamepad.right_stick.y = *value,
+                    Axis::LeftX => gamepad.left_stick.0 = *value,
+                    Axis::LeftY => gamepad.left_stick.1 = *value,
+                    Axis::RightX => gamepad.right_stick.0 = *value,
+                    Axis::RightY => gamepad.right_stick.1 = *value,
                     Axis::TriggerLeft => gamepad.left_trigger = *value,
                     Axis::TriggerRight => gamepad.right_trigger = *value,
                 }

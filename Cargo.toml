@@ -50,7 +50,7 @@ anymap = "0.12.1"
 egui_sdl2_platform = { git = "https://github.com/nikarh/egui_sdl2_platform", branch = "main" }
 egui = { version = "0.22.0", features = ["bytemuck"] }
 
-bevy_reflect = "0.10.1"
+bevy_reflect = "0.11.0"
 
 # Macros
 paste = "1.0.12"

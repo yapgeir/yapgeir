@@ -8,6 +8,5 @@ license = "MIT OR Apache-2.0"
 yapgeir_realm = { path = "../yapgeir_realm" }
 derive_more.workspace = true
 bitvec.workspace = true
-nalgebra.workspace = true
 strum.workspace = true
 indexmap.workspace = true

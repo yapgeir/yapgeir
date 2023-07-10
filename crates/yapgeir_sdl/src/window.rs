@@ -15,7 +15,7 @@ pub fn plugin(settings: SdlSettings) -> impl Plugin {
         gl_attr.set_depth_size(settings.depth_size);
 
         let window = video
-            .window("", settings.screen_size.x, settings.screen_size.y)
+            .window("", settings.screen_size.0, settings.screen_size.1)
             .opengl()
             .allow_highdpi()
             .resizable()

@@ -1,7 +1,7 @@
 use derive_more::{Constructor, From};
 use nalgebra::{Isometry2, Matrix3, Vector2};
 use yapgeir_reflection::bevy_reflect::Reflect;
-use yapgeir_reflection::bevy_reflect::{self, FromReflect};
+use yapgeir_reflection::bevy_reflect::{self};
 
 /// A view+projection matrix passed to a shader
 #[derive(Default, Clone, From)]
@@ -13,7 +13,7 @@ pub struct WorldCamera {
     pub screen_space: Vector2<f32>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Reflect, FromReflect)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Reflect)]
 pub enum Flip {
     X,
     Y,

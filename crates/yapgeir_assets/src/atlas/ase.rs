@@ -87,8 +87,8 @@ impl Sprite {
             )
             .flip_y(),
             sprite: GRect::new(
-                texture_scale.transform_point(&self.frame.a()),
                 texture_scale.transform_point(&self.frame.b()),
+                texture_scale.transform_point(&self.frame.a()),
             ),
         };
 

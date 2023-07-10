@@ -6,20 +6,20 @@ use yapgeir_core::Delta;
 use yapgeir_realm::{Realm, Res, ResMut};
 
 use yapgeir_reflection::bevy_reflect::Reflect;
-use yapgeir_reflection::bevy_reflect::{self, FromReflect};
+use yapgeir_reflection::bevy_reflect::{self};
 
 use super::{
     rapier::{Rapier, RigidBody},
     simple::KinematicBody,
 };
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Reflect, FromReflect)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Reflect)]
 pub enum DirectionX {
     Left,
     Right,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Reflect, FromReflect)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Reflect)]
 pub enum DirectionY {
     Down,
     Up,
