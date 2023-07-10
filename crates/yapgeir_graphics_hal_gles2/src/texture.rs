@@ -116,6 +116,10 @@ impl<B: Backend> Texture<Gles<B>> for GlesTexture<B> {
         }
     }
 
+    fn size(&self) -> ImageSize<u32> {
+        self.size
+    }
+
     fn write<'a>(
         &self,
         mipmap_level: u32,

@@ -21,10 +21,10 @@ impl Rect {
     #[inline]
     pub fn points(&self) -> [Point2<f32>; 4] {
         [
-            self.a,
             point![self.a.x, self.b.y],
             self.b,
             point![self.b.x, self.a.y],
+            self.a,
         ]
     }
 

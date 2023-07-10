@@ -8,5 +8,4 @@ license = "MIT OR Apache-2.0"
 yapgeir_realm = { path = "../yapgeir_realm" }
 yapgeir_graphics_hal = { path = "../yapgeir_graphics_hal" }
 derive_more.workspace = true
-nalgebra.workspace = true
 bytemuck.workspace = true

@@ -1,10 +1,10 @@
 use std::rc::Rc;
 
-use crate::batch_renderer::{BatchIndices, BatchRenderer};
+use crate::batch_renderer::{Batch, BatchIndices, BatchRenderer};
 use bytemuck::{Pod, Zeroable};
 use yapgeir_graphics_hal::{
     draw_params::DrawParameters, index_buffer::PrimitiveMode, shader::TextShaderSource,
-    uniforms::Uniforms, vertex_buffer::Vertex, Graphics, Rgba,
+    uniforms::Uniforms, vertex_buffer::Vertex, Graphics, Point, Rect, Rgba,
 };
 
 #[cfg(not(target_os = "vita"))]
@@ -70,10 +70,39 @@ pub struct PrimitiveUniforms {
     pub view: [[f32; 3]; 3],
 }
 
+pub struct PrimitiveBatch<'a, G: Graphics> {
+    batch: Batch<'a, G, PrimitiveVertex, PrimitiveUniforms>,
+}
+
+impl<G: Graphics> PrimitiveBatch<'_, G> {
+    pub fn draw_line(&mut self, start: Point<f32>, end: Point<f32>, color: Rgba<f32>) {
+        self.batch.draw(&[
+            PrimitiveVertex {
+                position: start.into(),
+                color: color.into(),
+            },
+            PrimitiveVertex {
+                position: end.into(),
+                color: color.into(),
+            },
+        ]);
+    }
+
+    pub fn draw_polygon(&mut self, points: &[Point<f32>], color: Rgba<f32>) {
+        for i in 0..points.len() {
+            self.draw_line(points[i], points[(i + 1) % points.len()], color);
+        }
+    }
+
+    #[inline]
+    pub fn draw_rect(&mut self, rect: Rect<f32>, color: Rgba<f32>) {
+        self.draw_polygon(&rect.points(), color);
+    }
+}
+
 pub struct PrimitiveRenderer<G: Graphics> {
-    pub uniforms: Rc<G::UniformBuffer<PrimitiveUniforms>>,
-    pub lines: BatchRenderer<G, PrimitiveVertex, PrimitiveUniforms>,
-    pub dots: BatchRenderer<G, PrimitiveVertex, PrimitiveUniforms>,
+    draw_parameters: DrawParameters,
+    renderer: BatchRenderer<G, PrimitiveVertex, PrimitiveUniforms>,
 }
 
 impl<G: Graphics> PrimitiveRenderer<G> {
@@ -81,43 +110,29 @@ impl<G: Graphics> PrimitiveRenderer<G> {
         let shader = Rc::new(ctx.new_shader(&SHADER.into()));
         let uniforms = Rc::new(ctx.new_uniform_buffer(&PrimitiveUniforms::default()));
 
-        let lines = BatchRenderer::new(
+        let renderer = BatchRenderer::new(
             ctx,
             shader.clone(),
             BatchIndices::Primitive(PrimitiveMode::Lines),
-            vec![],
             uniforms.clone(),
-            DrawParameters::default(),
-            (u16::MAX as usize, 1),
-        );
-
-        let dots = BatchRenderer::new(
-            ctx,
-            shader,
-            BatchIndices::Primitive(PrimitiveMode::Points),
-            vec![],
-            uniforms.clone(),
-            DrawParameters::default(),
             (u16::MAX as usize, 1),
         );
 
         Self {
-            uniforms,
-            lines,
-            dots,
+            renderer,
+            draw_parameters: DrawParameters::default(),
         }
     }
 
-    pub fn draw_rect(&mut self, fb: &G::FrameBuffer, points: [[f32; 2]; 4], color: Rgba<f32>) {
-        let points = points.map(|position| PrimitiveVertex {
-            position,
-            color: [color.r, color.g, color.b, color.a],
-        });
-        self.lines.draw(fb, &points_to_rect(&points));
+    pub fn start_batch<'a>(
+        &'a mut self,
+        fb: &'a G::FrameBuffer,
+        uniforms: &PrimitiveUniforms,
+    ) -> PrimitiveBatch<'a, G> {
+        PrimitiveBatch {
+            batch: self
+                .renderer
+                .start_batch(fb, &self.draw_parameters, uniforms, []),
+        }
     }
-}
-
-#[inline]
-pub fn points_to_rect<T: Clone>(points: &[T; 4]) -> [T; 8] {
-    [0, 1, 1, 2, 2, 3, 3, 0].map(|id| points[id].clone())
 }

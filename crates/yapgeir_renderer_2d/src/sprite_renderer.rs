@@ -1,6 +1,5 @@
 use bytemuck::{Pod, Zeroable};
-use derive_more::{Deref, DerefMut};
-use std::{borrow::Borrow, rc::Rc};
+use std::rc::Rc;
 use yapgeir_graphics_hal::{
     draw_params::Blend,
     draw_params::{
@@ -10,13 +9,16 @@ use yapgeir_graphics_hal::{
     sampler::Sampler,
     samplers::SamplerAttribute,
     shader::TextShaderSource,
-    texture::Samplers,
+    texture::Texture,
     uniforms::Uniforms,
     vertex_buffer::Vertex,
-    Graphics,
+    Graphics, ImageSize, Point, Rect,
 };
 
-use crate::{batch_renderer::BatchIndices, quad_index_buffer::QuadIndexBuffer};
+use crate::{
+    batch_renderer::{Batch, BatchIndices},
+    quad_index_buffer::QuadIndexBuffer,
+};
 
 use super::batch_renderer::BatchRenderer;
 
@@ -81,7 +83,7 @@ const SHADER: TextShaderSource = TextShaderSource {
     fragment: r#"
         varying out float4 gl_FragColor : COLOR;
         varying out float gl_FragDepth : DEPTH;
-        varying in float4 gl_FragCoord : WPOS;
+        varying in float4 gl_FragCoord : POS;
         uniform sampler2D tex: TEXUNIT0;
 
         void main(
@@ -120,33 +122,152 @@ pub struct SpriteUniforms {
     pub scale: [f32; 2],
 }
 
-#[derive(Samplers)]
-pub struct SpriteSamplers<G: Graphics> {
-    pub tex: Sampler<G>,
+pub struct SpriteBatch<'a, G>
+where
+    G: Graphics,
+{
+    batch: Batch<
+        'a,
+        G,
+        SpriteVertex,
+        SpriteUniforms,
+        &'a G::Texture,
+        [SamplerAttribute<G, &'a G::Texture>; 1],
+    >,
+    texture: &'a G::Texture,
 }
 
-#[derive(Deref, DerefMut)]
-pub struct SpriteRenderer<G, T>(BatchRenderer<G, SpriteVertex, SpriteUniforms, T>)
-where
-    G: Graphics,
-    T: Borrow<G::Texture>;
+pub enum SpriteVertices {
+    /// A point in world space. This will render the sprite with it's center
+    /// at this point without any other transformations.
+    Point(Point<f32>),
 
-impl<G, T> SpriteRenderer<G, T>
+    /// A rectangle in world space. Will render the sprite in this rectangle
+    /// implicitly doing non-uniform scaling.
+    Rect(Rect<f32>),
+
+    /// Will render the sprite in the quad.
+    /// This should be used when you have already pre-calculated transformations.
+    /// The quad can be both front or back facing.
+    ///
+    /// Passing non-convex quads is undefined behavior.
+    Quad([Point<f32>; 4]),
+}
+
+impl SpriteVertices {
+    /// Calculate a quad in world-space coordinates.
+    pub fn quad(
+        self,
+        texture_region: &TextureRegion,
+        texture_size: ImageSize<u32>,
+    ) -> [Point<f32>; 4] {
+        match self {
+            SpriteVertices::Point(point) => {
+                // Here we calculate the quad assuming that the center of it is our point,
+                // and the size is defined by texture regions pixel size.
+                let quad_size = texture_region.pixel_size(texture_size);
+                let half_size = (quad_size.w as f32 / 2., quad_size.h as f32 / 2.);
+
+                [
+                    Point::new(point.x - half_size.0, point.y - half_size.1),
+                    Point::new(point.x + half_size.0, point.y - half_size.1),
+                    Point::new(point.x + half_size.0, point.y + half_size.1),
+                    Point::new(point.x - half_size.0, point.y + half_size.1),
+                ]
+            }
+            SpriteVertices::Rect(rect) => rect.points(),
+            SpriteVertices::Quad(quad) => quad,
+        }
+    }
+}
+
+pub enum TextureRegion {
+    /// Use the whole texture
+    Full,
+
+    /// Rectangle in pixels with (0; 0) representing top-left coordinate
+    Pixels(Rect<u32>),
+
+    /// Rectangle in texture space with (0; 0) representing top-left corner,
+    /// and (1; 1) representing bottom right corner.
+    TextureSpace(Rect<f32>),
+}
+
+impl TextureRegion {
+    pub fn in_texture_space(&self, texture_size: ImageSize<u32>) -> Rect<f32> {
+        match self {
+            TextureRegion::Full => Rect::new(0.0, 0.0, 1.0, 1.0),
+            TextureRegion::TextureSpace(rect) => rect.clone(),
+            TextureRegion::Pixels(rect) => Rect::new(
+                rect.x as f32 / texture_size.w as f32,
+                rect.y as f32 / texture_size.h as f32,
+                rect.w as f32 / texture_size.w as f32,
+                rect.h as f32 / texture_size.h as f32,
+            ),
+        }
+    }
+
+    pub fn pixel_size(&self, texture_size: ImageSize<u32>) -> ImageSize<u32> {
+        match self {
+            TextureRegion::Full => texture_size,
+            TextureRegion::TextureSpace(rect) => ImageSize::new(
+                (rect.w * texture_size.w as f32) as u32,
+                (rect.h * texture_size.h as f32) as u32,
+            ),
+            TextureRegion::Pixels(rect) => (rect.w, rect.h).into(),
+        }
+    }
+}
+
+impl<'a, G> SpriteBatch<'a, G>
 where
     G: Graphics,
-    T: Borrow<G::Texture>,
+{
+    pub fn draw_sprite(
+        &mut self,
+        sprite: SpriteVertices,
+        texture_region: TextureRegion,
+        depth: u16,
+    ) {
+        let quad = sprite.quad(&texture_region, self.texture.size());
+        let texture_region = texture_region
+            .in_texture_space(self.texture.size())
+            .points();
+
+        self.batch.draw(&[
+            SpriteVertex::new(quad[0].into(), texture_region[0].into(), depth),
+            SpriteVertex::new(quad[1].into(), texture_region[1].into(), depth),
+            SpriteVertex::new(quad[2].into(), texture_region[2].into(), depth),
+            SpriteVertex::new(quad[3].into(), texture_region[3].into(), depth),
+        ])
+    }
+}
+
+pub struct SpriteRenderer<G>
+where
+    G: Graphics,
+{
+    renderer: BatchRenderer<G, SpriteVertex, SpriteUniforms>,
+    draw_parameters: DrawParameters,
+}
+
+impl<G> SpriteRenderer<G>
+where
+    G: Graphics,
 {
     pub fn new<'a>(ctx: &G, quad_index_buffer: QuadIndexBuffer<G>) -> Self {
         let shader = Rc::new(ctx.new_shader(&SHADER.into()));
         let uniforms = Rc::new(ctx.new_uniform_buffer(&SpriteUniforms::default()));
 
-        Self(BatchRenderer::new(
-            ctx,
-            shader,
-            BatchIndices::Quad(quad_index_buffer),
-            Vec::with_capacity(1),
-            uniforms,
-            DrawParameters {
+        Self {
+            renderer: BatchRenderer::new(
+                ctx,
+                shader,
+                BatchIndices::Quad(quad_index_buffer),
+                uniforms,
+                (u16::MAX as usize, 1),
+            ),
+            draw_parameters: DrawParameters {
                 // Use depth buffer to "sort" sprites by their depth on GPU.
                 // This won't work for semi-transparent pixels (such as light)
                 depth: Some(DrawDepth {
@@ -163,16 +284,27 @@ where
                 }),
                 ..Default::default()
             },
-            (u16::MAX as usize, 1),
-        ))
+        }
     }
 
-    pub fn set_texture(&mut self, sampler: Sampler<G, T>) {
-        self.textures.clear();
-        self.textures.push(SamplerAttribute {
-            name: "tex",
-            location: 0,
-            sampler,
-        })
+    pub fn start_batch<'a>(
+        &'a mut self,
+        fb: &'a G::FrameBuffer,
+        uniforms: &SpriteUniforms,
+        sampler: Sampler<G, &'a G::Texture>,
+    ) -> SpriteBatch<'a, G> {
+        SpriteBatch {
+            texture: sampler.texture,
+            batch: self.renderer.start_batch(
+                fb,
+                &self.draw_parameters,
+                uniforms,
+                [SamplerAttribute {
+                    name: "tex",
+                    location: 0,
+                    sampler,
+                }],
+            ),
+        }
     }
 }

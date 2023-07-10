@@ -4,7 +4,7 @@ use egui_sdl2_platform::Platform;
 use yapgeir_core::Ppt;
 use yapgeir_egui_painter::{EguiDrawData, EguiPainter};
 use yapgeir_events::Events;
-use yapgeir_graphics_hal::{shader::TextShaderSource, Graphics, ImageSize};
+use yapgeir_graphics_hal::{Graphics, ImageSize};
 use yapgeir_realm::{IntoSystem, Plugin, Realm, Res, ResMut, System};
 
 pub struct EguiRenderer<G: Graphics> {

@@ -20,6 +20,8 @@ pub trait Texture<G: Graphics> {
     fn new(renderer: G, format: G::PixelFormat, size: ImageSize<u32>, bytes: Option<&[u8]>)
         -> Self;
 
+    fn size(&self) -> ImageSize<u32>;
+
     fn write(&self, mipmap_level: u32, format: G::PixelFormat, size: ImageSize<u32>, bytes: &[u8]);
 
     fn write_rect(&self, mipmap_level: u32, format: G::PixelFormat, rect: Rect<u32>, bytes: &[u8]);

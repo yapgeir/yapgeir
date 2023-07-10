@@ -18,9 +18,9 @@ pub struct Sprite {
 // and a crop factor
 #[derive(Debug, Clone, Default)]
 pub struct SubTexture {
-    /// This is the clip rectangle in centered normalized space
+    /// This is the clip rectangle in centered texture space
     pub clip: Rect,
-    /// This is the location of a sprite on an atlas in normalized space
+    /// This is the location of a sprite on an atlas in texture space
     pub sprite: Rect,
 }
 

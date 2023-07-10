@@ -1,6 +1,5 @@
 use bytemuck::Pod;
-use nalgebra::{point, Point2};
-use std::{borrow::Borrow, iter::repeat_with, ops::Deref, rc::Rc};
+use std::{borrow::Borrow, iter::repeat_with, marker::PhantomData, ops::Deref, rc::Rc};
 use yapgeir_graphics_hal::{
     buffer::{Buffer, BufferKind, BufferUsage},
     draw_descriptor::{AsVertexBindings, IndexBinding},
@@ -8,18 +7,18 @@ use yapgeir_graphics_hal::{
     frame_buffer::{FrameBuffer, Indices},
     index_buffer::PrimitiveMode,
     samplers::SamplerAttribute,
-    uniforms::Uniforms,
+    uniforms::{UniformBuffer, Uniforms},
     vertex_buffer::Vertex,
-    Graphics,
+    Graphics, Point,
 };
 
 use crate::quad_index_buffer::QuadIndexBuffer;
 
-pub static CENTERED_UNIT_RECT: [Point2<f32>; 4] = [
-    point![-0.5, -0.5],
-    point![-0.5, 0.5],
-    point![0.5, 0.5],
-    point![0.5, -0.5],
+pub static CENTERED_UNIT_RECT: [Point<f32>; 4] = [
+    Point::new(-0.5, -0.5),
+    Point::new(-0.5, 0.5),
+    Point::new(0.5, 0.5),
+    Point::new(0.5, -0.5),
 ];
 
 pub enum BatchIndices<G: Graphics> {
@@ -43,15 +42,85 @@ impl<'a, G: Graphics> BatchIndices<G> {
     }
 }
 
-pub struct BatchRenderer<
+pub struct Batch<'a, G, V, U, T = <G as Graphics>::Texture, S = [SamplerAttribute<G, T>; 0]>
+where
     G: Graphics,
     V: Vertex + Pod,
-    U: Uniforms + Pod = (),
-    T: Borrow<G::Texture> = <G as Graphics>::Texture,
-> {
-    pub textures: Vec<SamplerAttribute<G, T>>,
-    pub uniforms: Rc<G::UniformBuffer<U>>,
-    pub draw_parameters: DrawParameters,
+    U: Uniforms + Pod,
+    T: Borrow<G::Texture>,
+    S: Borrow<[SamplerAttribute<G, T>]>,
+{
+    fb: &'a G::FrameBuffer,
+    textures: S,
+    renderer: &'a mut BatchRenderer<G, V, U>,
+    draw_parameters: &'a DrawParameters,
+
+    _t: PhantomData<T>,
+}
+
+impl<'a, G, V, U, T, S> Drop for Batch<'a, G, V, U, T, S>
+where
+    G: Graphics,
+    V: Vertex + Pod,
+    U: Uniforms + Pod,
+    T: Borrow<G::Texture>,
+    S: Borrow<[SamplerAttribute<G, T>]>,
+{
+    fn drop(&mut self) {
+        self.flush();
+    }
+}
+
+impl<'a, G, V, U, T, S> Batch<'a, G, V, U, T, S>
+where
+    G: Graphics,
+    V: Vertex + Pod,
+    U: Uniforms + Pod,
+    T: Borrow<G::Texture>,
+    S: Borrow<[SamplerAttribute<G, T>]>,
+{
+    pub fn draw(&mut self, vertices: &[V]) {
+        assert!(vertices.len() <= self.renderer.unflushed.capacity());
+
+        // If vertices don't fit the unflushed vec, force a draw call to clean it up.
+        if vertices.len() > self.renderer.unflushed.capacity() - self.renderer.unflushed.len() {
+            self.flush();
+        }
+
+        for v in vertices {
+            self.renderer.unflushed.push(*v);
+        }
+    }
+
+    fn flush(&mut self) {
+        if self.renderer.unflushed.is_empty() {
+            return;
+        }
+
+        let current = &self.renderer.vertices[self.renderer.current_buffer];
+        current.0.write(0, &self.renderer.unflushed);
+
+        self.fb.draw(
+            &current.1,
+            &self.draw_parameters,
+            self.textures.borrow(),
+            Some(&self.renderer.uniform_buffer),
+            &self.renderer.indices.indices(self.renderer.unflushed.len()),
+        );
+
+        self.renderer.unflushed.clear();
+        self.renderer.current_buffer =
+            (self.renderer.current_buffer + 1) % self.renderer.vertices.len();
+    }
+}
+
+pub struct BatchRenderer<G, V, U = ()>
+where
+    G: Graphics,
+    V: Vertex + Pod,
+    U: Uniforms + Pod,
+{
+    uniform_buffer: Rc<G::UniformBuffer<U>>,
 
     // This will store our vertices until they are flushed to GPU.
     unflushed: Vec<V>,
@@ -64,16 +133,17 @@ pub struct BatchRenderer<
     indices: BatchIndices<G>,
 }
 
-impl<G: Graphics, V: Vertex + Pod, U: Uniforms + Pod, T: Borrow<G::Texture>>
-    BatchRenderer<G, V, U, T>
+impl<G, V, U> BatchRenderer<G, V, U>
+where
+    G: Graphics,
+    V: Vertex + Pod,
+    U: Uniforms + Pod,
 {
     pub fn new<'a>(
         ctx: &G,
         shader: Rc<G::Shader>,
         indices: BatchIndices<G>,
-        textures: Vec<SamplerAttribute<G, T>>,
         uniforms: Rc<G::UniformBuffer<U>>,
-        draw_parameters: DrawParameters,
         (buffer_size, buffer_count): (usize, usize),
     ) -> Self {
         let mut unflushed = Vec::with_capacity(buffer_size);
@@ -98,9 +168,7 @@ impl<G: Graphics, V: Vertex + Pod, U: Uniforms + Pod, T: Borrow<G::Texture>>
         unflushed.clear();
 
         Self {
-            textures,
-            uniforms,
-            draw_parameters,
+            uniform_buffer: uniforms,
 
             unflushed,
             vertices,
@@ -110,36 +178,26 @@ impl<G: Graphics, V: Vertex + Pod, U: Uniforms + Pod, T: Borrow<G::Texture>>
         }
     }
 
-    pub fn draw(&mut self, fb: &G::FrameBuffer, vertices: &[V]) {
-        assert!(vertices.len() <= self.unflushed.capacity());
+    pub fn start_batch<'a, T, S>(
+        &'a mut self,
+        fb: &'a G::FrameBuffer,
+        draw_parameters: &'a DrawParameters,
+        uniforms: &U,
+        textures: S,
+    ) -> Batch<'a, G, V, U, T, S>
+    where
+        T: Borrow<G::Texture>,
+        S: Borrow<[SamplerAttribute<G, T>]>,
+    {
+        self.uniform_buffer.write(&uniforms);
 
-        // If vertices don't fit the unflushed vec, force a draw call to clean it up.
-        if vertices.len() > self.unflushed.capacity() - self.unflushed.len() {
-            self.flush(fb);
+        Batch {
+            fb,
+            textures,
+            renderer: self,
+            draw_parameters,
+
+            _t: PhantomData,
         }
-
-        for v in vertices {
-            self.unflushed.push(*v);
-        }
-    }
-
-    pub fn flush(&mut self, fb: &G::FrameBuffer) {
-        if self.unflushed.is_empty() {
-            return;
-        }
-
-        let current = &self.vertices[self.current_buffer];
-        current.0.write(0, &self.unflushed);
-
-        fb.draw(
-            &current.1,
-            &self.draw_parameters,
-            &self.textures,
-            Some(&self.uniforms),
-            &self.indices.indices(self.unflushed.len()),
-        );
-
-        self.unflushed.clear();
-        self.current_buffer = (self.current_buffer + 1) % self.vertices.len();
     }
 }
