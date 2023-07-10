@@ -60,8 +60,10 @@ fn move_tile(mut world: ResMut<World>, delta: Res<Delta>) {
     for (_, (tile, speed)) in world.query_mut::<(&mut Position, &mut Speed)>() {
         tile.x = tile.x + speed.0 * delta.0;
 
-        if tile.x > 200. || tile.x < -200. {
-            speed.0 *= -1.;
+        if tile.x > 200. {
+            speed.0 = -1. * speed.0.abs();
+        } else if tile.x < -200. {
+            speed.0 = speed.0.abs();
         }
     }
 }
