@@ -1,3 +1,9 @@
+[package]
+name = "yapgeir"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+
 [workspace]
 members = ["crates/*", "crates/*/macro"]
 resolver = "2"
@@ -58,3 +64,17 @@ darling = "0.20.1"
 [patch."https://github.com/Rust-SDL2/rust-sdl2"]
 sdl2 = "0.35.2"
 
+[dev-dependencies]
+yapgeir_sdl = { path = "crates/yapgeir_sdl" }
+yapgeir_graphics_hal = { path = "crates/yapgeir_graphics_hal" }
+yapgeir_graphics_hal_gles2 = { path = "crates/yapgeir_graphics_hal_gles2" }
+yapgeir_core = { path = "crates/yapgeir_core" }
+yapgeir_realm = { path = "crates/yapgeir_realm" }
+yapgeir_renderer_2d = { path = "crates/yapgeir_renderer_2d" }
+yapgeir_assets = { path = "crates/yapgeir_assets" }
+nalgebra.workspace = true
+hecs.workspace = true
+
+[[example]]
+name="2d_sprite"
+path="examples/2d_sprite.rs"

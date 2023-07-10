@@ -1432,6 +1432,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "yapgeir"
+version = "0.1.0"
+dependencies = [
+ "hecs",
+ "nalgebra",
+ "yapgeir_assets",
+ "yapgeir_core",
+ "yapgeir_graphics_hal",
+ "yapgeir_graphics_hal_gles2",
+ "yapgeir_realm",
+ "yapgeir_renderer_2d",
+ "yapgeir_sdl",
+]
+
+[[package]]
 name = "yapgeir_assets"
 version = "0.1.0"
 dependencies = [
