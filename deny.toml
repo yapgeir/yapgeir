@@ -35,6 +35,7 @@ skip = [
     { name = "indexmap", version = "1.9" },
     { name = "hashbrown", version = "0.12" },
     { name = "hashbrown", version = "0.13" },
+    { name = "ahash", version = "0.7" },
 ]
 
 [sources]
