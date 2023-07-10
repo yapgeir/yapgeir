@@ -101,7 +101,6 @@ impl<G: Graphics> PrimitiveBatch<'_, G> {
 }
 
 pub struct PrimitiveRenderer<G: Graphics> {
-    draw_parameters: DrawParameters,
     renderer: BatchRenderer<G, PrimitiveVertex, PrimitiveUniforms>,
 }
 
@@ -118,21 +117,19 @@ impl<G: Graphics> PrimitiveRenderer<G> {
             (u16::MAX as usize, 1),
         );
 
-        Self {
-            renderer,
-            draw_parameters: DrawParameters::default(),
-        }
+        Self { renderer }
     }
 
     pub fn start_batch<'a>(
         &'a mut self,
         fb: &'a G::FrameBuffer,
         uniforms: &PrimitiveUniforms,
+        draw_parameters: &'a DrawParameters,
     ) -> PrimitiveBatch<'a, G> {
         PrimitiveBatch {
             batch: self
                 .renderer
-                .start_batch(fb, &self.draw_parameters, uniforms, []),
+                .start_batch(fb, &draw_parameters, uniforms, []),
         }
     }
 }
