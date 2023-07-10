@@ -1,7 +1,10 @@
 use derive_more::Constructor;
 use strum::EnumCount;
 
-use crate::buttons::{u32_blocks, Buttons, CastToUsize};
+use crate::{
+    buttons::{u32_blocks, Buttons, CastToUsize},
+    Axial,
+};
 
 #[derive(Constructor, PartialEq, Eq, Hash, Clone, Copy)]
 pub struct GamepadId(pub u32);
@@ -42,9 +45,18 @@ impl CastToUsize for GamepadButton {
 
 #[derive(Default)]
 pub struct Gamepad {
+    //// Current button states.
     pub buttons: Buttons<BLOCKS, GamepadButton>,
-    pub left_stick: (i16, i16),
-    pub right_stick: (i16, i16),
-    pub left_trigger: i16,
-    pub right_trigger: i16,
+
+    /// Left stick coordinates. Each axis is normalized to [-1, 1]. Center is [0, 0].
+    pub left_stick: Axial<f32>,
+
+    /// Right stick coordinates. Each axis is normalized to [-1, 1]. Center is [0, 0].
+    pub right_stick: Axial<f32>,
+
+    /// Left trigger state. Normalized to [0, 1]. Depressed is 0.
+    pub left_trigger: f32,
+
+    /// Right trigger state. Normalized to [0, 1]. Depressed is 0.
+    pub right_trigger: f32,
 }

@@ -6,6 +6,7 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 yapgeir_realm = { path = "../yapgeir_realm" }
+yapgeir_events = { path = "../yapgeir_events" }
 derive_more.workspace = true
 bitvec.workspace = true
 strum.workspace = true

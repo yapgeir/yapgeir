@@ -1,4 +1,4 @@
-use derive_more::Deref;
+use derive_more::{Constructor, Deref};
 use smart_default::SmartDefault;
 use yapgeir_reflection::bevy_reflect;
 use yapgeir_reflection::bevy_reflect::Reflect;
@@ -16,3 +16,10 @@ pub struct Frame(pub u64);
 /// Pixels per point
 #[derive(SmartDefault, Clone, Copy, Deref, Debug, Reflect)]
 pub struct Ppt(#[default(1.)] pub f32);
+
+/// Current window size. Refreshed automatically by the window manager on each frame.
+#[derive(Constructor, Clone, Copy, Debug, Reflect)]
+pub struct WindowSize {
+    pub w: u32,
+    pub h: u32,
+}

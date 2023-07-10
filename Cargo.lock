@@ -1437,8 +1437,10 @@ dependencies = [
  "nalgebra",
  "yapgeir_assets",
  "yapgeir_core",
+ "yapgeir_events",
  "yapgeir_graphics_hal",
  "yapgeir_graphics_hal_gles2",
+ "yapgeir_input",
  "yapgeir_realm",
  "yapgeir_renderer_2d",
  "yapgeir_sdl",
@@ -1556,6 +1558,7 @@ dependencies = [
  "derive_more",
  "indexmap 2.0.0",
  "strum",
+ "yapgeir_events",
  "yapgeir_realm",
 ]
 

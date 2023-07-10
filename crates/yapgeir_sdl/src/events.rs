@@ -11,7 +11,7 @@ fn update(
         if matches!(event, SdlEvent::Quit { .. }) {
             **&mut *exit = true;
         }
-        events.0.push(event);
+        events.push(event);
     }
 }
 

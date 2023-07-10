@@ -1,11 +1,11 @@
-use derive_more::Deref;
+use derive_more::{Deref, DerefMut};
 use yapgeir_realm::Realm;
 use yapgeir_realm::ResMut;
 
 /// A generic resource for any events used for cross-system communication.
 /// Events are cleared at the beginning of every frame.
-#[derive(Deref)]
-pub struct Events<E: 'static>(pub Vec<E>);
+#[derive(Deref, DerefMut)]
+pub struct Events<E: 'static>(Vec<E>);
 
 fn clear_events<E: 'static>(mut e: ResMut<Events<E>>) {
     e.0.clear();

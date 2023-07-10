@@ -5,8 +5,10 @@ use sdl2::{controller::GameController, event::Event as SdlEvent};
 use yapgeir_core::Ppt;
 use yapgeir_events::Events;
 use yapgeir_input::{
+    buttons::ButtonAction,
     controller::{GamepadButton, GamepadId},
-    Input,
+    mouse::{MouseButton, MouseButtonEvent},
+    Axial, Input,
 };
 use yapgeir_realm::{Realm, Res, ResMut};
 
@@ -50,23 +52,79 @@ fn gamepad_button(button: &sdl2::controller::Button) -> GamepadButton {
     }
 }
 
+fn mouse_button(button: &sdl2::mouse::MouseButton) -> Option<MouseButton> {
+    match button {
+        sdl2::mouse::MouseButton::Unknown => None,
+        sdl2::mouse::MouseButton::Left => Some(MouseButton::Left),
+        sdl2::mouse::MouseButton::Middle => Some(MouseButton::Middle),
+        sdl2::mouse::MouseButton::Right => Some(MouseButton::Right),
+        sdl2::mouse::MouseButton::X1 => Some(MouseButton::X1),
+        sdl2::mouse::MouseButton::X2 => Some(MouseButton::X2),
+    }
+}
+
 fn update(
     mut input: ResMut<Input>,
     mut controllers: ResMut<SdlControllers>,
     mut ppt: ResMut<Ppt>,
+    mut mouse_button_events: ResMut<Events<MouseButtonEvent>>,
     events: Res<Events<SdlEvent>>,
     window: Res<Rc<sdl2::video::Window>>,
 ) {
     for e in &**events {
         match e {
+            SdlEvent::MouseButtonDown {
+                mouse_btn, x, y, ..
+            } => {
+                if let Some(button) = mouse_button(mouse_btn) {
+                    mouse_button_events.push(MouseButtonEvent {
+                        coordinate: Axial::new(*x, *y),
+                        button,
+                        action: ButtonAction::Down,
+                    });
+
+                    let button = button as usize;
+                    input.mouse.buttons.pressed.set(button, true);
+                    input.mouse.buttons.current_state.set(button, true);
+                }
+            }
+            SdlEvent::MouseButtonUp {
+                mouse_btn, x, y, ..
+            } => {
+                if let Some(button) = mouse_button(mouse_btn) {
+                    mouse_button_events.push(MouseButtonEvent {
+                        coordinate: Axial::new(*x, *y),
+                        button,
+                        action: ButtonAction::Up,
+                    });
+
+                    let button = button as usize;
+                    input.mouse.buttons.current_state.set(button, false);
+                }
+            }
+            SdlEvent::MouseWheel { x, y, .. } => {
+                input.mouse.wheel.x = *x;
+                input.mouse.wheel.y = *y;
+            }
+            SdlEvent::MouseMotion {
+                x, y, xrel, yrel, ..
+            } => {
+                input.mouse.motion.x = *xrel;
+                input.mouse.motion.y = *yrel;
+                input.mouse.cursor_position.x = *x;
+                input.mouse.cursor_position.y = *y;
+            }
             SdlEvent::KeyDown {
                 scancode: Some(scancode),
                 ..
-            } => input.keyboard.state.set(*scancode as usize, true),
+            } => {
+                input.keyboard.pressed.set(*scancode as usize, true);
+                input.keyboard.current_state.set(*scancode as usize, true);
+            }
             SdlEvent::KeyUp {
                 scancode: Some(scancode),
                 ..
-            } => input.keyboard.state.set(*scancode as usize, false),
+            } => input.keyboard.current_state.set(*scancode as usize, false),
             SdlEvent::ControllerAxisMotion {
                 which, axis, value, ..
             } => {
@@ -75,27 +133,31 @@ fn update(
                     .get_mut(&GamepadId::new(*which))
                     .expect("gamepad not found");
                 match axis {
-                    Axis::LeftX => gamepad.left_stick.0 = *value,
-                    Axis::LeftY => gamepad.left_stick.1 = *value,
-                    Axis::RightX => gamepad.right_stick.0 = *value,
-                    Axis::RightY => gamepad.right_stick.1 = *value,
-                    Axis::TriggerLeft => gamepad.left_trigger = *value,
-                    Axis::TriggerRight => gamepad.right_trigger = *value,
+                    Axis::LeftX => gamepad.left_stick.x = *value as f32 / i32::MAX as f32,
+                    Axis::LeftY => gamepad.left_stick.y = *value as f32 / i32::MAX as f32,
+                    Axis::RightX => gamepad.right_stick.x = *value as f32 / i32::MAX as f32,
+                    Axis::RightY => gamepad.right_stick.y = *value as f32 / i32::MAX as f32,
+                    Axis::TriggerLeft => gamepad.left_trigger = *value as f32 / i32::MAX as f32,
+                    Axis::TriggerRight => gamepad.right_trigger = *value as f32 / i32::MAX as f32,
                 }
             }
-            SdlEvent::ControllerButtonDown { button, which, .. } => input
-                .gamepads
-                .get_mut(&GamepadId::new(*which))
-                .expect("gamepad not found")
-                .buttons
-                .state
-                .set(gamepad_button(button) as usize, true),
+            SdlEvent::ControllerButtonDown { button, which, .. } => {
+                let button = gamepad_button(button) as usize;
+                let buttons = &mut input
+                    .gamepads
+                    .get_mut(&GamepadId::new(*which))
+                    .expect("gamepad not found")
+                    .buttons;
+
+                buttons.pressed.set(button, true);
+                buttons.current_state.set(button, true);
+            }
             SdlEvent::ControllerButtonUp { button, which, .. } => input
                 .gamepads
                 .get_mut(&GamepadId::new(*which))
                 .expect("gamepad not found")
                 .buttons
-                .state
+                .current_state
                 .set(gamepad_button(button) as usize, false),
             SdlEvent::ControllerDeviceAdded { which, .. } => {
                 let controller = controllers

@@ -73,6 +73,8 @@ yapgeir_core = { path = "crates/yapgeir_core" }
 yapgeir_realm = { path = "crates/yapgeir_realm" }
 yapgeir_renderer_2d = { path = "crates/yapgeir_renderer_2d" }
 yapgeir_assets = { path = "crates/yapgeir_assets" }
+yapgeir_input = { path = "crates/yapgeir_input" }
+yapgeir_events = { path = "crates/yapgeir_events" }
 nalgebra.workspace = true
 hecs.workspace = true
 
