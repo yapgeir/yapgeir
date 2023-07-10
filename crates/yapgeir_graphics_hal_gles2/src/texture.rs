@@ -207,9 +207,7 @@ impl<B: Backend> Drop for GlesTexture<B> {
                 ctx.state.active_texture_unit = u as u32;
             }
 
-            #[cfg(not(feature = "samplers"))]
             ctx.clean_texture(self.texture);
-
             ctx.gl.delete_texture(self.texture);
         }
     }

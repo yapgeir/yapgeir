@@ -1612,7 +1612,6 @@ version = "0.1.0"
 dependencies = [
  "bytemuck",
  "derive_more",
- "nalgebra",
  "yapgeir_graphics_hal",
  "yapgeir_realm",
 ]

@@ -405,10 +405,8 @@ fn bind_texture<B: Backend>(
             // A sampler can be changed only if its location is not used by another binding for this draw call.
             // This allows binding same texture with different samplers, if sampler objects are supported.
 
-            #[cfg(feature = "samplers")]
-            let can_reuse = !used_units.get(unit).as_deref().cloned().unwrap_or(false);
-            #[cfg(not(feature = "samplers"))]
-            let can_reuse = true;
+            let can_reuse = !ctx.features.sampler_objects
+                || !used_units.get(unit).as_deref().cloned().unwrap_or(false);
 
             if can_reuse {
                 used_units.set(unit, true);
