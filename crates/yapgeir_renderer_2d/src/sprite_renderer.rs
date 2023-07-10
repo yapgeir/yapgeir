@@ -137,7 +137,7 @@ where
     texture: &'a G::Texture,
 }
 
-pub enum SpriteVertices {
+pub enum DrawRegion {
     /// A point in world space. This will render the sprite with it's center
     /// at this point without any other transformations.
     Point(Point<f32>),
@@ -154,7 +154,7 @@ pub enum SpriteVertices {
     Quad([Point<f32>; 4]),
 }
 
-impl SpriteVertices {
+impl DrawRegion {
     /// Calculate a quad in world-space coordinates.
     pub fn quad(
         self,
@@ -162,7 +162,7 @@ impl SpriteVertices {
         texture_size: ImageSize<u32>,
     ) -> [Point<f32>; 4] {
         match self {
-            SpriteVertices::Point(point) => {
+            DrawRegion::Point(point) => {
                 // Here we calculate the quad assuming that the center of it is our point,
                 // and the size is defined by texture regions pixel size.
                 let quad_size = texture_region.pixel_size(texture_size);
@@ -175,8 +175,8 @@ impl SpriteVertices {
                     Point::new(point.x - half_size.0, point.y + half_size.1),
                 ]
             }
-            SpriteVertices::Rect(rect) => rect.points(),
-            SpriteVertices::Quad(quad) => quad,
+            DrawRegion::Rect(rect) => rect.points(),
+            DrawRegion::Quad(quad) => quad,
         }
     }
 }
@@ -223,22 +223,17 @@ impl<'a, G> SpriteBatch<'a, G>
 where
     G: Graphics,
 {
-    pub fn draw_sprite(
-        &mut self,
-        sprite: SpriteVertices,
-        texture_region: TextureRegion,
-        depth: u16,
-    ) {
+    pub fn draw_sprite(&mut self, sprite: DrawRegion, texture_region: TextureRegion, depth: u16) {
         let quad = sprite.quad(&texture_region, self.texture.size());
         let texture_region = texture_region
             .in_texture_space(self.texture.size())
             .points();
 
         self.batch.draw(&[
-            SpriteVertex::new(quad[0].into(), texture_region[0].into(), depth),
-            SpriteVertex::new(quad[1].into(), texture_region[1].into(), depth),
-            SpriteVertex::new(quad[2].into(), texture_region[2].into(), depth),
-            SpriteVertex::new(quad[3].into(), texture_region[3].into(), depth),
+            SpriteVertex::new(quad[0].into(), texture_region[2].into(), depth),
+            SpriteVertex::new(quad[1].into(), texture_region[3].into(), depth),
+            SpriteVertex::new(quad[2].into(), texture_region[0].into(), depth),
+            SpriteVertex::new(quad[3].into(), texture_region[1].into(), depth),
         ])
     }
 }
