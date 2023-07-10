@@ -8,7 +8,7 @@ use yapgeir_graphics_hal::{
     buffer::BufferKind,
     draw_params::{Blend, CullFaceMode, Depth, PolygonOffset, Stencil, StencilCheck},
     sampler::SamplerState,
-    Backend, ImageSize, Rect, Rgba,
+    ImageSize, Rect, Rgba, WindowBackend,
 };
 
 use crate::{constants::GlConstant, samplers::Samplers};
@@ -104,14 +104,14 @@ pub struct Features {
     pub sampler_objects: bool,
 }
 
-pub struct GlesContext<B: Backend> {
+pub struct GlesContext<B: WindowBackend> {
     pub(crate) gl: glow::Context,
     pub(crate) backend: B,
     pub(crate) state: RefCell<GlesState>,
     pub(crate) features: Features,
 }
 
-impl<B: Backend> Drop for GlesContext<B> {
+impl<B: WindowBackend> Drop for GlesContext<B> {
     fn drop(&mut self) {
         if self.features.sampler_objects {
             let mut state = self.state.borrow_mut();
@@ -124,7 +124,7 @@ impl<B: Backend> Drop for GlesContext<B> {
     }
 }
 
-impl<B: Backend> GlesContext<B> {
+impl<B: WindowBackend> GlesContext<B> {
     pub(crate) unsafe fn new(backend: B) -> Self {
         let gl = glow::Context::from_loader_function(|s| backend.get_proc_address(s));
         let texture_unit_limit = gl.get_parameter_i32(glow::MAX_TEXTURE_IMAGE_UNITS) as usize;

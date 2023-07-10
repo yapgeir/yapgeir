@@ -1,7 +1,7 @@
 use glow::{HasContext, PixelUnpackData};
 use yapgeir_graphics_hal::{
     texture::{PixelFormat, Texture},
-    Backend, ImageSize, Rect,
+    ImageSize, Rect, WindowBackend,
 };
 
 use crate::{constants::GlConstant, Gles};
@@ -71,14 +71,14 @@ impl GlesPixelFormat {
     }
 }
 
-pub struct GlesTexture<B: Backend> {
+pub struct GlesTexture<B: WindowBackend> {
     ctx: Gles<B>,
     format: GlesPixelFormat,
     pub(crate) size: ImageSize<u32>,
     pub(crate) texture: glow::Texture,
 }
 
-impl<B: Backend> Texture<Gles<B>> for GlesTexture<B> {
+impl<B: WindowBackend> Texture<Gles<B>> for GlesTexture<B> {
     type PixelFormat = GlesPixelFormat;
 
     fn new<'a>(
@@ -185,7 +185,7 @@ impl<B: Backend> Texture<Gles<B>> for GlesTexture<B> {
     }
 }
 
-impl<B: Backend> Drop for GlesTexture<B> {
+impl<B: WindowBackend> Drop for GlesTexture<B> {
     fn drop(&mut self) {
         let mut ctx = self.ctx.get_ref();
 

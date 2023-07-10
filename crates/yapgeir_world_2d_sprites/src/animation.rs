@@ -10,7 +10,7 @@ use yapgeir_collections::indexed_map::IndexedMap;
 use yapgeir_core::Delta;
 use yapgeir_realm::{system, Realm, Res, ResMut};
 
-use yapgeir_reflection::bevy_reflect::{self, FromReflect};
+use yapgeir_reflection::bevy_reflect::{self};
 use yapgeir_reflection::{bevy_reflect::Reflect, RealmExtensions};
 
 use super::sprites::Drawable;

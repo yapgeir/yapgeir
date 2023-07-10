@@ -25,7 +25,7 @@ pub mod texture;
 pub mod uniforms;
 pub mod vertex_buffer;
 
-pub trait Backend
+pub trait WindowBackend
 where
     Self: 'static,
 {
@@ -38,6 +38,7 @@ pub trait Graphics
 where
     Self: Sized + Clone + 'static,
 {
+    type Backend: WindowBackend;
     type Shader: Shader<Self>;
     type PixelFormat: From<PixelFormat>;
     type Texture: Texture<Self, PixelFormat = Self::PixelFormat>;
@@ -49,6 +50,8 @@ where
     type BufferUsage: From<BufferUsage>;
     type ByteBuffer: ByteBuffer<Self, Usage = Self::BufferUsage>;
     type UniformBuffer<T: Pod>: UniformBuffer<Self, T>;
+
+    fn new(backend: Self::Backend) -> Self;
 
     fn default_framebuffer(&self) -> Self::FrameBuffer {
         Self::FrameBuffer::default(self.clone())

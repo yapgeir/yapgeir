@@ -5,7 +5,7 @@ use glow::HasContext;
 use yapgeir_graphics_hal::{
     shader::{Shader, TextShaderSource},
     uniforms::{UniformAttribute, Uniforms},
-    Backend,
+    WindowBackend,
 };
 
 use crate::Gles;
@@ -48,7 +48,7 @@ pub(crate) struct ShaderState {
     pub uniforms_cache: (&'static [UniformAttribute], Vec<u8>),
 }
 
-pub struct GlesShader<B: Backend> {
+pub struct GlesShader<B: WindowBackend> {
     pub(crate) ctx: Gles<B>,
     pub(crate) program: glow::Program,
     pub(crate) attribute_data: HashMap<String, u32>,
@@ -180,7 +180,7 @@ unsafe fn get_vertex_attributes(
     attributes
 }
 
-impl<B: Backend> Shader<Gles<B>> for GlesShader<B> {
+impl<B: WindowBackend> Shader<Gles<B>> for GlesShader<B> {
     type Source = TextShaderSource<'static>;
 
     fn new(ctx: Gles<B>, source: &TextShaderSource) -> Self {
@@ -205,7 +205,7 @@ impl<B: Backend> Shader<Gles<B>> for GlesShader<B> {
     }
 }
 
-impl<B: Backend> Drop for GlesShader<B> {
+impl<B: WindowBackend> Drop for GlesShader<B> {
     fn drop(&mut self) {
         unsafe {
             let mut ctx = self.ctx.get_ref();

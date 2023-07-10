@@ -66,6 +66,7 @@ sdl2 = "0.35.2"
 
 [dev-dependencies]
 yapgeir_sdl = { path = "crates/yapgeir_sdl" }
+yapgeir_sdl_graphics = { path = "crates/yapgeir_sdl_graphics" }
 yapgeir_graphics_hal = { path = "crates/yapgeir_graphics_hal" }
 yapgeir_graphics_hal_gles2 = { path = "crates/yapgeir_graphics_hal_gles2" }
 yapgeir_core = { path = "crates/yapgeir_core" }

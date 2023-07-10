@@ -13,7 +13,7 @@ use yapgeir_graphics_hal::{
     sampler::SamplerState,
     samplers::SamplerAttribute,
     uniforms::{UniformAttribute, Uniforms},
-    Backend, ImageSize, Rect, Rgba,
+    ImageSize, Rect, Rgba, WindowBackend,
 };
 
 use crate::{
@@ -53,12 +53,12 @@ impl GlesReadFormat {
     }
 }
 
-pub struct GlesRenderBuffer<B: Backend> {
+pub struct GlesRenderBuffer<B: WindowBackend> {
     ctx: Gles<B>,
     renderbuffer: glow::Renderbuffer,
 }
 
-impl<B: Backend> RenderBuffer<Gles<B>> for GlesRenderBuffer<B> {
+impl<B: WindowBackend> RenderBuffer<Gles<B>> for GlesRenderBuffer<B> {
     type Format = RenderBufferFormat;
 
     fn new(ctx: Gles<B>, size: ImageSize<u32>, format: RenderBufferFormat) -> Self {
@@ -81,7 +81,7 @@ impl<B: Backend> RenderBuffer<Gles<B>> for GlesRenderBuffer<B> {
     }
 }
 
-impl<B: Backend> Drop for GlesRenderBuffer<B> {
+impl<B: WindowBackend> Drop for GlesRenderBuffer<B> {
     fn drop(&mut self) {
         unsafe {
             let mut ctx = self.ctx.get_ref();
@@ -93,7 +93,7 @@ impl<B: Backend> Drop for GlesRenderBuffer<B> {
     }
 }
 
-unsafe fn attach_texture<B: Backend>(
+unsafe fn attach_texture<B: WindowBackend>(
     gl: &glow::Context,
     texture: &GlesTexture<B>,
     attachment: u32,
@@ -107,7 +107,7 @@ unsafe fn attach_texture<B: Backend>(
     )
 }
 
-unsafe fn attach_render_buffer<B: Backend>(
+unsafe fn attach_render_buffer<B: WindowBackend>(
     gl: &glow::Context,
     render_buffer: &GlesRenderBuffer<B>,
     attachment: u32,
@@ -120,14 +120,18 @@ unsafe fn attach_render_buffer<B: Backend>(
     )
 }
 
-unsafe fn attach<B: Backend>(gl: &glow::Context, attachment: &Attachment<Gles<B>>, kind: u32) {
+unsafe fn attach<B: WindowBackend>(
+    gl: &glow::Context,
+    attachment: &Attachment<Gles<B>>,
+    kind: u32,
+) {
     match attachment {
         Attachment::Texture(texture) => attach_texture(gl, &texture, kind),
         Attachment::RenderBuffer(renderbuffer) => attach_render_buffer(gl, &renderbuffer, kind),
     }
 }
 
-enum Resources<B: Backend> {
+enum Resources<B: WindowBackend> {
     Default,
     Managed {
         size: ImageSize<u32>,
@@ -137,7 +141,7 @@ enum Resources<B: Backend> {
     },
 }
 
-impl<B: Backend> Resources<B> {
+impl<B: WindowBackend> Resources<B> {
     fn framebuffer(&self) -> Option<glow::Framebuffer> {
         match self {
             Resources::Default => None,
@@ -146,12 +150,12 @@ impl<B: Backend> Resources<B> {
     }
 }
 
-pub struct GlesFrameBuffer<B: Backend> {
+pub struct GlesFrameBuffer<B: WindowBackend> {
     ctx: Gles<B>,
     res: Resources<B>,
 }
 
-impl<B: Backend + 'static> FrameBuffer<Gles<B>> for GlesFrameBuffer<B> {
+impl<B: WindowBackend + 'static> FrameBuffer<Gles<B>> for GlesFrameBuffer<B> {
     type ReadFormat = GlesReadFormat;
 
     fn default(ctx: Gles<B>) -> Self {
@@ -284,7 +288,7 @@ impl<B: Backend + 'static> FrameBuffer<Gles<B>> for GlesFrameBuffer<B> {
     }
 }
 
-fn draw_impl<'a, B: Backend>(
+fn draw_impl<'a, B: WindowBackend>(
     ctx: &mut GlesContextRef<'_>,
     frame_buffer: Option<glow::Framebuffer>,
     draw_descriptor: &GlesDrawDescriptor<B>,
@@ -317,7 +321,7 @@ fn draw_impl<'a, B: Backend>(
     }
 }
 
-impl<B: Backend> Drop for GlesFrameBuffer<B> {
+impl<B: WindowBackend> Drop for GlesFrameBuffer<B> {
     fn drop(&mut self) {
         unsafe {
             let mut ctx = self.ctx.get_ref();
@@ -354,7 +358,7 @@ fn set_draw_parameters<'a>(
     ctx.set_dithering(draw_parameters.dithering);
 }
 
-fn bind_textures<'a, B: Backend + 'a>(
+fn bind_textures<'a, B: WindowBackend + 'a>(
     ctx: &mut GlesContextRef<'a>,
     shader: &GlesShader<B>,
     textures: &[SamplerAttribute<Gles<B>, impl Borrow<GlesTexture<B>>>],
@@ -376,7 +380,7 @@ fn bind_textures<'a, B: Backend + 'a>(
     }
 }
 
-fn bind_texture<B: Backend>(
+fn bind_texture<B: WindowBackend>(
     ctx: &mut GlesContextRef,
     used_units: &mut BitArray<u32>,
     shader_state: &mut ShaderState,
@@ -451,7 +455,7 @@ fn bind_texture<B: Backend>(
     used_units.set(unit, true);
 }
 
-fn bind_uniforms<'a, B: Backend>(
+fn bind_uniforms<'a, B: WindowBackend>(
     ctx: &mut GlesContextRef<'a>,
     shader: &GlesShader<B>,
     uniforms: &[u8],

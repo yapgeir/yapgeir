@@ -1,19 +1,19 @@
 use glow::HasContext;
 use yapgeir_graphics_hal::{
     buffer::{BufferData, BufferKind, BufferUsage, ByteBuffer},
-    Backend,
+    WindowBackend,
 };
 
 use crate::{constants::GlConstant, Gles};
 
-pub struct GlesBuffer<B: Backend> {
+pub struct GlesBuffer<B: WindowBackend> {
     pub(crate) ctx: Gles<B>,
     pub(crate) len: usize,
     pub(crate) kind: BufferKind,
     pub(crate) buffer: glow::Buffer,
 }
 
-impl<B: Backend> ByteBuffer<Gles<B>> for GlesBuffer<B> {
+impl<B: WindowBackend> ByteBuffer<Gles<B>> for GlesBuffer<B> {
     type Usage = BufferUsage;
 
     fn new<'a>(
@@ -76,7 +76,7 @@ impl<B: Backend> ByteBuffer<Gles<B>> for GlesBuffer<B> {
     }
 }
 
-impl<B: Backend> Drop for GlesBuffer<B> {
+impl<B: WindowBackend> Drop for GlesBuffer<B> {
     fn drop(&mut self) {
         unsafe {
             let mut ctx = self.ctx.get_ref();

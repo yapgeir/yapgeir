@@ -1,0 +1,10 @@
+[package]
+name = "yapgeir_sdl_graphics"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+yapgeir_sdl = { path = "../yapgeir_sdl" }
+yapgeir_graphics_hal = { path = "../yapgeir_graphics_hal" }
+yapgeir_realm = { path = "../yapgeir_realm" }

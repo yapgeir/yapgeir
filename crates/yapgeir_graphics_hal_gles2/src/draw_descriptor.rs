@@ -9,22 +9,22 @@ use yapgeir_graphics_hal::{
     draw_descriptor::{DrawDescriptor, IndexBinding, VertexBindings},
     index_buffer::IndexKind,
     vertex_buffer::VertexAttribute,
-    Backend,
+    WindowBackend,
 };
 
-pub(crate) enum GlesDrawDescriptorImpl<B: Backend> {
+pub(crate) enum GlesDrawDescriptorImpl<B: WindowBackend> {
     Vao(vao::GlesDrawDescriptor<B>),
     Fallback(fallback::GlesDrawDescriptor<B>),
 }
 
-pub struct GlesDrawDescriptor<B: Backend> {
+pub struct GlesDrawDescriptor<B: WindowBackend> {
     pub(crate) shader: Rc<GlesShader<B>>,
     pub(crate) index_kind: Option<IndexKind>,
 
     inner: GlesDrawDescriptorImpl<B>,
 }
 
-impl<B: Backend> DrawDescriptor<Gles<B>> for GlesDrawDescriptor<B> {
+impl<B: WindowBackend> DrawDescriptor<Gles<B>> for GlesDrawDescriptor<B> {
     fn new(
         ctx: Gles<B>,
         shader: Rc<GlesShader<B>>,
@@ -53,7 +53,7 @@ impl<B: Backend> DrawDescriptor<Gles<B>> for GlesDrawDescriptor<B> {
     }
 }
 
-impl<B: Backend> GlesDrawDescriptor<B> {
+impl<B: WindowBackend> GlesDrawDescriptor<B> {
     pub(crate) fn bind(&self, ctx: &mut GlesContextRef) {
         match &self.inner {
             GlesDrawDescriptorImpl::Vao(vao) => vao.bind(ctx),
@@ -68,13 +68,13 @@ pub struct DrawDescriptorCache {
     current: usize,
 }
 
-struct Bindings<'a, B: Backend> {
+struct Bindings<'a, B: WindowBackend> {
     buffer: &'a GlesBuffer<B>,
     attributes: &'a [VertexAttribute],
     stride: usize,
 }
 
-unsafe fn bind_buffers<'a, B: Backend>(
+unsafe fn bind_buffers<'a, B: WindowBackend>(
     ctx: &mut GlesContextRef,
     shader: &GlesShader<B>,
     indices: &IndexBinding<Gles<B>>,
@@ -118,21 +118,21 @@ mod vao {
     use glow::HasContext;
     use yapgeir_graphics_hal::{
         draw_descriptor::{IndexBinding, VertexBindings},
-        Backend,
+        WindowBackend,
     };
 
     use crate::{buffer::GlesBuffer, context::GlesContextRef, shader::GlesShader, Gles};
 
     use super::bind_buffers;
 
-    pub struct GlesDrawDescriptor<B: Backend> {
+    pub struct GlesDrawDescriptor<B: WindowBackend> {
         ctx: Gles<B>,
         vao: glow::VertexArray,
         _indices: IndexBinding<Gles<B>>,
         _vertices: Vec<Rc<GlesBuffer<B>>>,
     }
 
-    impl<B: Backend> Drop for GlesDrawDescriptor<B> {
+    impl<B: WindowBackend> Drop for GlesDrawDescriptor<B> {
         fn drop(&mut self) {
             let mut ctx = self.ctx.get_ref();
             if ctx.state.bound_vertex_array == Some(self.vao) {
@@ -143,7 +143,7 @@ mod vao {
         }
     }
 
-    impl<B: Backend> GlesDrawDescriptor<B> {
+    impl<B: WindowBackend> GlesDrawDescriptor<B> {
         pub fn new(
             ctx: Gles<B>,
             shader: Rc<GlesShader<B>>,
@@ -192,26 +192,26 @@ mod fallback {
     use yapgeir_graphics_hal::{
         draw_descriptor::{IndexBinding, VertexBindings},
         vertex_buffer::VertexAttribute,
-        Backend,
+        WindowBackend,
     };
 
     use crate::{buffer::GlesBuffer, context::GlesContextRef, shader::GlesShader, Gles};
 
     use super::bind_buffers;
 
-    struct OwnedBindings<B: Backend> {
+    struct OwnedBindings<B: WindowBackend> {
         buffer: Rc<GlesBuffer<B>>,
         attributes: Vec<VertexAttribute>,
         stride: usize,
     }
 
-    pub struct GlesDrawDescriptor<B: Backend> {
+    pub struct GlesDrawDescriptor<B: WindowBackend> {
         id: usize,
         indices: IndexBinding<Gles<B>>,
         vertices: Vec<OwnedBindings<B>>,
     }
 
-    impl<B: Backend> GlesDrawDescriptor<B> {
+    impl<B: WindowBackend> GlesDrawDescriptor<B> {
         pub fn new(
             ctx: Gles<B>,
             indices: IndexBinding<Gles<B>>,
