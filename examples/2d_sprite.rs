@@ -1,7 +1,7 @@
 use std::ops::Deref;
 
 use hecs::World;
-use nalgebra::Matrix3;
+use nalgebra::{Matrix3, Vector2};
 use yapgeir_assets::png::decode_png;
 use yapgeir_core::{Delta, WindowSize};
 use yapgeir_events::Events;
@@ -11,7 +11,7 @@ use yapgeir_graphics_hal::{
 use yapgeir_graphics_hal_gles2::Gles;
 use yapgeir_input::{
     buttons::ButtonAction,
-    mouse::{Mouse, MouseButton, MouseButtonEvent},
+    mouse::{MouseButton, MouseButtonEvent},
     Axial,
 };
 use yapgeir_realm::{Realm, Res, ResMut};
@@ -22,16 +22,13 @@ use yapgeir_renderer_2d::{
 use yapgeir_sdl::SdlSettings;
 use yapgeir_sdl_graphics::SdlWindowBackend;
 
-const WIDTH: u32 = 600;
-const HEIGHT: u32 = 400;
-
 pub type GraphicsAdapter = Gles<SdlWindowBackend>;
 
 fn main() {
     yapgeir_realm::Realm::default()
         // Creates SDL window, initializes input, Delta and Frame.
         .add_plugin(yapgeir_sdl::plugin(SdlSettings {
-            window_size: WindowSize::new(WIDTH, HEIGHT),
+            window_size: WindowSize::new(600, 400),
             ..SdlSettings::default()
         }))
         // Prints FPS stats to stdout
@@ -42,9 +39,18 @@ fn main() {
         .initialize_resource::<World>()
         // Initializes entities in ECS
         .run_system(|mut world: ResMut<World>| {
-            world.spawn((Position { x: 0., y: 0. }, Speed(170.)));
-            world.spawn((Position { x: -30., y: -50. }, Speed(100.2)));
-            world.spawn((Position { x: 30., y: 50. }, Speed(-120.1)));
+            for _ in 0..500 {
+                world.spawn((
+                    Position(Vector2::new(
+                        rand::random::<f32>() * 200. - 100.,
+                        rand::random::<f32>() * 200. - 100.,
+                    )),
+                    Velocity(Vector2::new(
+                        rand::random::<f32>() * 600. - 300.,
+                        rand::random::<f32>() * 600. - 300.,
+                    )),
+                ));
+            }
         })
         // Game logic system
         .add_system(move_tile)
@@ -56,22 +62,25 @@ fn main() {
 }
 
 #[derive(Debug, Clone, Copy)]
-struct Position {
-    pub x: f32,
-    pub y: f32,
-}
+struct Position(Vector2<f32>);
 
 #[derive(Debug)]
-struct Speed(f32);
+struct Velocity(Vector2<f32>);
 
 fn move_tile(mut world: ResMut<World>, delta: Res<Delta>, window_size: Res<WindowSize>) {
-    for (_, (position, speed)) in world.query_mut::<(&mut Position, &mut Speed)>() {
-        position.x = position.x + speed.0 * delta.0;
+    for (_, (position, velocity)) in world.query_mut::<(&mut Position, &mut Velocity)>() {
+        position.0 += velocity.0 * delta.0;
 
-        if position.x > window_size.w as f32 / 2. {
-            speed.0 = -1. * speed.0.abs();
-        } else if position.x < -(window_size.w as f32 / 2.) {
-            speed.0 = speed.0.abs();
+        if position.0.x > window_size.w as f32 / 2. {
+            velocity.0.x = -1. * velocity.0.x.abs();
+        } else if position.0.x < -(window_size.w as f32 / 2.) {
+            velocity.0.x = velocity.0.x.abs();
+        }
+
+        if position.0.y > window_size.h as f32 / 2. {
+            velocity.0 = -1. * velocity.0.abs();
+        } else if position.0.y < -(window_size.h as f32 / 2.) {
+            velocity.0 = velocity.0.abs();
         }
     }
 }
@@ -80,7 +89,7 @@ fn window_to_world(position: Axial<i32>, window_size: WindowSize) -> Position {
     let x = position.x as f32 - (window_size.w as f32 / 2.);
     let y = -(position.y as f32 - (window_size.h as f32 / 2.));
 
-    Position { x, y }
+    Position(Vector2::new(x, y))
 }
 
 fn spawn_tile_on_left_click(
@@ -94,16 +103,22 @@ fn spawn_tile_on_left_click(
 
     for e in left_button_mouse_down_events {
         let position = window_to_world(e.coordinate, *window_size);
-        world.spawn((position, Speed(170.)));
+        world.spawn((
+            position,
+            Velocity(Vector2::new(
+                rand::random::<f32>() * 200. - 100.,
+                rand::random::<f32>() * 600. - 300.,
+            )),
+        ));
     }
 }
 
 fn is_in_rectangle(center: Position, point: Position, side_length: f32) -> bool {
     let half_side = side_length / 2.0;
-    if point.x < center.x - half_side || point.x > center.x + half_side {
+    if point.0.x < center.0.x - half_side || point.0.x > center.0.x + half_side {
         return false;
     }
-    if point.y < center.y - half_side || point.y > center.y + half_side {
+    if point.0.y < center.0.y - half_side || point.0.y > center.0.y + half_side {
         return false;
     }
     true
@@ -167,19 +182,13 @@ fn render<G: Graphics>(
     {
         let mut batch = sprite_renderer.start_batch(
             &fb,
-            &SpriteUniforms {
-                view: Matrix3::identity().into(),
-                scale: [
-                    1. / window_size.w as f32 * 2.,
-                    1. / window_size.h as f32 * 2.,
-                ],
-            },
+            Matrix3::identity().into(),
             Sampler::nearest(&texture),
         );
 
         for (_, tile) in world.query::<&Position>().iter() {
             batch.draw_sprite(
-                DrawRegion::Point((tile.x as f32, tile.y as f32).into()),
+                DrawRegion::Point((tile.0.x as f32, tile.0.y as f32).into()),
                 TextureRegion::Full,
                 0,
             );
