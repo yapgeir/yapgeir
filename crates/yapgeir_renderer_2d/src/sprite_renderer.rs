@@ -6,6 +6,7 @@ use yapgeir_graphics_hal::{
         BlendingFactor, BlendingFunction, Depth as DrawDepth, DepthStencilTest, DrawParameters,
         SeparateBlending,
     },
+    frame_buffer::FrameBuffer,
     sampler::Sampler,
     samplers::SamplerAttribute,
     shader::TextShaderSource,
@@ -287,15 +288,19 @@ where
     pub fn start_batch<'a>(
         &'a mut self,
         fb: &'a G::FrameBuffer,
-        uniforms: &SpriteUniforms,
+        camera: [[f32; 3]; 3],
         sampler: Sampler<G, &'a G::Texture>,
     ) -> SpriteBatch<'a, G> {
+        let size = fb.size();
         SpriteBatch {
             texture: sampler.texture,
             batch: self.renderer.start_batch(
                 fb,
                 &self.draw_parameters,
-                uniforms,
+                &SpriteUniforms {
+                    view: camera,
+                    scale: [1. / (size.w / 2) as f32, 1. / (size.h / 2) as f32],
+                },
                 [SamplerAttribute {
                     name: "tex",
                     location: 0,
