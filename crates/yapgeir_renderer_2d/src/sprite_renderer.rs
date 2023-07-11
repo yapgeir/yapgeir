@@ -56,7 +56,7 @@ const SHADER: TextShaderSource = TextShaderSource {
 
         void main() {
             gl_FragColor = texture2D(tex, v_tex_position);
-            gl_FragDepth = gl_FragCoord.z * (1-gl_FragColor.a);
+            if (gl_FragColor.a == 0.0) discard;
         }
     "#,
 };
@@ -100,12 +100,11 @@ const SHADER: TextShaderSource = TextShaderSource {
 pub struct SpriteVertex {
     pub position: [f32; 2],
     pub tex_position: [f32; 2],
-    pub depth: u16,
-    __padding: [u8; 2],
+    pub depth: f32,
 }
 
 impl SpriteVertex {
-    pub fn new(position: [f32; 2], tex_position: [f32; 2], depth: u16) -> Self {
+    pub fn new(position: [f32; 2], tex_position: [f32; 2], depth: f32) -> Self {
         Self {
             position,
             tex_position,
@@ -229,6 +228,8 @@ where
             .in_texture_space(self.texture.size())
             .points();
 
+        let depth = (depth as f32 - 32768.) / u16::MAX as f32;
+
         self.batch.draw(&[
             SpriteVertex::new(quad[0].into(), texture_region[2].into(), depth),
             SpriteVertex::new(quad[1].into(), texture_region[3].into(), depth),
@@ -268,7 +269,8 @@ where
                 depth: Some(DrawDepth {
                     test: DepthStencilTest::Less,
                     write: true,
-                    ..Default::default()
+                    // Use the whole range of possible depths
+                    range: (-1., 1.),
                 }),
                 blend: Some(Blend {
                     function: SeparateBlending::all(BlendingFunction {
