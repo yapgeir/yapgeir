@@ -43,6 +43,7 @@ const SHADER: TextShaderSource = TextShaderSource {
 
         void main() {
             v_tex_position = tex_position;
+            v_tex_position.y = 1 - v_tex_position.y;
             vec2 px = round((view * vec3(position, 1.0)).xy);
             vec2 sc = px * scale;
             gl_Position = vec4(sc, depth, 1.0);
@@ -232,10 +233,10 @@ where
         let depth = (depth as f32 - 32768.) / u16::MAX as f32;
 
         self.batch.draw(&[
-            SpriteVertex::new(quad[0].into(), texture_region[2].into(), depth),
-            SpriteVertex::new(quad[1].into(), texture_region[3].into(), depth),
-            SpriteVertex::new(quad[2].into(), texture_region[0].into(), depth),
-            SpriteVertex::new(quad[3].into(), texture_region[1].into(), depth),
+            SpriteVertex::new(quad[0].into(), texture_region[0].into(), depth),
+            SpriteVertex::new(quad[1].into(), texture_region[1].into(), depth),
+            SpriteVertex::new(quad[2].into(), texture_region[2].into(), depth),
+            SpriteVertex::new(quad[3].into(), texture_region[3].into(), depth),
         ])
     }
 }
