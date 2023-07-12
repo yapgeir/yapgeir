@@ -3,7 +3,7 @@ use std::{collections::HashMap, mem, ops::Index};
 use derive_more::Constructor;
 use hecs::{Entity, Without, World};
 use yapgeir_assets::animations::{Animation, AnimationKind, AnimationSequence};
-use yapgeir_collections::indexed_map::IndexedMap;
+use yapgeir_collections::{PersistentSlotMap, Slot};
 use yapgeir_core::Delta;
 use yapgeir_realm::{system, Realm, Res, ResMut};
 
@@ -11,29 +11,36 @@ use yapgeir_reflection::bevy_reflect::{self};
 use yapgeir_reflection::{bevy_reflect::Reflect, RealmExtensions};
 use yapgeir_world_2d::Drawable;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Constructor, Reflect)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Constructor, Hash, Reflect)]
 pub struct AnimationSequenceKey(u16);
+
+impl From<Slot> for AnimationSequenceKey {
+    fn from(slot: Slot) -> Self {
+        Self(slot.0 as u16)
+    }
+}
+
+impl Into<Slot> for AnimationSequenceKey {
+    fn into(self) -> Slot {
+        Slot(self.0 as usize)
+    }
+}
 
 // This is they key that should be used to access entities
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Reflect)]
 pub struct AnimationKey(AnimationSequenceKey, u8);
 
 #[derive(Default, Debug)]
-pub struct AnimationStorage(pub IndexedMap<String, AnimationSequence>);
+pub struct AnimationStorage(pub PersistentSlotMap<String, AnimationSequence>);
 
 impl AnimationStorage {
     #[inline]
     fn is_last_in_sequence(&self, index: AnimationKey) -> bool {
-        let sequence_id = index.0 .0 as usize;
-        self.0[sequence_id].len() <= index.1 as usize + 1
+        let key = index.0;
+        self.0[Into::<Slot>::into(key)].len() <= index.1 as usize + 1
     }
 
     pub fn merge(&mut self, map: HashMap<String, AnimationSequence>) {
-        let cap = self.0.capacity();
-        if cap < map.len() {
-            self.0.reserve(map.len() - cap);
-        }
-
         for (key, value) in map {
             self.0.insert(key, value);
         }
@@ -44,16 +51,20 @@ impl AnimationStorage {
         key: impl Into<String>,
         sequence: AnimationSequence,
     ) -> AnimationSequenceKey {
-        let id = self.0.insert(key.into(), sequence);
-        AnimationSequenceKey::new(id as u16)
+        let slot = self.0.insert(key.into(), sequence);
+        slot.into()
+    }
+
+    pub fn find_key(&self, key: &str) -> Option<AnimationSequenceKey> {
+        self.0.find_slot_by_key(key).map(|slot| slot.into())
     }
 }
 
 impl Index<AnimationKey> for AnimationStorage {
     type Output = Animation;
 
-    fn index(&self, index: AnimationKey) -> &Self::Output {
-        &self.0[index.0 .0 as usize][index.1 as usize]
+    fn index(&self, key: AnimationKey) -> &Self::Output {
+        &self.0[Into::<Slot>::into(key.0)][key.1 as usize]
     }
 }
 

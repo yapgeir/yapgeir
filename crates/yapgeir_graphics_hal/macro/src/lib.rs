@@ -12,20 +12,20 @@ mod vertex;
 #[proc_macro_derive(Vertex, attributes(vertex))]
 pub fn vertex_derive(input: TokenStream) -> TokenStream {
     let input = syn::parse2(input.into()).unwrap();
-    let vertex = Vertex::from_derive_input(&input).unwrap();
-    quote!(#vertex).into()
+    let output = Vertex::from_derive_input(&input).unwrap();
+    quote!(#output).into()
 }
 
 #[proc_macro_derive(Uniforms, attributes(uniforms))]
 pub fn uniforms_derive(input: TokenStream) -> TokenStream {
     let input = syn::parse2(input.into()).unwrap();
-    let uniforms = Uniforms::from_derive_input(&input).unwrap();
-    quote!(#uniforms).into()
+    let output = Uniforms::from_derive_input(&input).unwrap();
+    quote!(#output).into()
 }
 
 #[proc_macro_derive(Samplers, attributes(samplers))]
 pub fn textures_derive(input: TokenStream) -> TokenStream {
     let input = syn::parse2(input.into()).unwrap();
-    let samplers = Samplers::from_derive_input(&input).unwrap();
-    quote!(#samplers).into()
+    let output = Samplers::from_derive_input(&input).unwrap();
+    quote!(#output).into()
 }
