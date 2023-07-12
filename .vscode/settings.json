@@ -9,6 +9,7 @@
         "cmds",
         "dealloc",
         "DECR",
+        "despawn",
         "dhat",
         "Dpad",
         "drawables",

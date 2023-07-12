@@ -1478,10 +1478,13 @@ dependencies = [
  "yapgeir_graphics_hal",
  "yapgeir_graphics_hal_gles2",
  "yapgeir_input",
+ "yapgeir_physics_2d",
  "yapgeir_realm",
  "yapgeir_renderer_2d",
  "yapgeir_sdl",
  "yapgeir_sdl_graphics",
+ "yapgeir_world_2d",
+ "yapgeir_world_2d_sprites",
 ]
 
 [[package]]

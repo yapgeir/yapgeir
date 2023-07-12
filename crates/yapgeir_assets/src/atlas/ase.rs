@@ -3,7 +3,8 @@ use std::collections::HashMap;
 use anyhow::Result;
 use nalgebra::{point, vector, Point2, Scale2, Vector2};
 use serde::Deserialize;
-use yapgeir_geometry::Box2D as GRect;
+use yapgeir_geometry::Box2D;
+use yapgeir_world_2d::Drawable;
 
 use super::Atlas;
 
@@ -77,7 +78,7 @@ impl Rect {
 }
 
 impl Sprite {
-    fn to_sprite(&self, texel_scale: Scale2<f32>) -> super::Sprite {
+    fn to_sprite(&self, texel_scale: Scale2<f32>) -> Drawable {
         let half_size = self.source_size.vector() * 0.5;
 
         // Clip is logically inverted, because it was calculated based on Y down,
@@ -90,17 +91,17 @@ impl Sprite {
         a.y = self.source_size.h as f32 - by;
         b.y = self.source_size.h as f32 - ay;
 
-        let sub_texture = super::SubTexture {
-            boundaries: GRect::new((&a - half_size).into(), (&b - half_size).into()),
-            sprite: GRect::new(
+        let sprite = yapgeir_world_2d::Sprite {
+            boundaries: Box2D::new((&a - half_size).into(), (&b - half_size).into()),
+            sub_texture: Box2D::new(
                 texel_scale.transform_point(&self.frame.a()).into(),
                 texel_scale.transform_point(&self.frame.b()).into(),
             ),
         };
 
-        super::Sprite {
-            size: (self.source_size.w, self.source_size.h),
-            sub_texture,
+        Drawable {
+            size: [self.source_size.w, self.source_size.h],
+            sprite,
         }
     }
 }
@@ -116,7 +117,7 @@ impl AsepriteAtlas {
             .pseudo_inverse();
 
         Atlas {
-            sprites: self
+            drawables: self
                 .frames
                 .iter()
                 .map(|(k, v)| (k.clone(), v.to_sprite(texel_space)))

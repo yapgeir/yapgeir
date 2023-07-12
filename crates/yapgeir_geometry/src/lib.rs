@@ -1,4 +1,4 @@
-use std::ops::Add;
+use std::ops::{Add, Sub};
 
 use derive_more::Constructor;
 use yapgeir_reflection::bevy_reflect::{self, Reflect};
@@ -45,5 +45,19 @@ impl<T> Box2D<T> {
             [self.max[0], self.max[1]],
             [self.max[0], self.min[1]],
         ]
+    }
+}
+
+impl<T> From<Box2D<T>> for Rect<T>
+where
+    T: Copy + Sub<T, Output = T>,
+{
+    fn from(box2d: Box2D<T>) -> Self {
+        Self {
+            x: box2d.min[0],
+            y: box2d.min[1],
+            w: box2d.max[0] - box2d.min[0],
+            h: box2d.max[1] - box2d.min[1],
+        }
     }
 }

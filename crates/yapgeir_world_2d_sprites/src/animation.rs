@@ -1,6 +1,6 @@
 use std::{collections::HashMap, mem, ops::Index};
 
-use derive_more::{Constructor, Deref, DerefMut};
+use derive_more::Constructor;
 use hecs::{Entity, Without, World};
 use yapgeir_assets::animations::{Animation, AnimationKind, AnimationSequence};
 use yapgeir_collections::indexed_map::IndexedMap;
@@ -9,7 +9,7 @@ use yapgeir_realm::{system, Realm, Res, ResMut};
 
 use yapgeir_reflection::bevy_reflect::{self};
 use yapgeir_reflection::{bevy_reflect::Reflect, RealmExtensions};
-use yapgeir_world_2d::{Drawable, SubTexture};
+use yapgeir_world_2d::Drawable;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Constructor, Reflect)]
 pub struct AnimationSequenceKey(u16);
@@ -18,8 +18,8 @@ pub struct AnimationSequenceKey(u16);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Reflect)]
 pub struct AnimationKey(AnimationSequenceKey, u8);
 
-#[derive(Default, Deref, DerefMut, Debug)]
-pub struct AnimationStorage(IndexedMap<String, AnimationSequence>);
+#[derive(Default, Debug)]
+pub struct AnimationStorage(pub IndexedMap<String, AnimationSequence>);
 
 impl AnimationStorage {
     #[inline]
@@ -37,6 +37,15 @@ impl AnimationStorage {
         for (key, value) in map {
             self.0.insert(key, value);
         }
+    }
+
+    pub fn insert(
+        &mut self,
+        key: impl Into<String>,
+        sequence: AnimationSequence,
+    ) -> AnimationSequenceKey {
+        let id = self.0.insert(key.into(), sequence);
+        AnimationSequenceKey::new(id as u16)
     }
 }
 
@@ -125,7 +134,7 @@ impl Animator {
 }
 
 #[derive(Default)]
-struct DrawableAdder(Vec<(Entity, SubTexture)>);
+struct DrawableAdder(Vec<(Entity, Drawable)>);
 
 #[system]
 impl DrawableAdder {
@@ -136,9 +145,9 @@ impl DrawableAdder {
             self.0.push((e, drawable));
         }
 
-        for (e, d) in &self.0 {
+        for (e, drawable) in &self.0 {
             world
-                .insert_one(e.clone(), Drawable::new(d.clone()))
+                .insert_one(e.clone(), drawable.clone())
                 .expect("Unable to insert Drawable for entity");
         }
     }
@@ -192,7 +201,7 @@ fn update(mut world: ResMut<World>, store: Res<AnimationStorage>, delta: Res<Del
 
         a.frame = FrameState::Frame(frame);
 
-        drawable.sub_texture = store[a.animation].frames[frame.index as usize].clone();
+        *drawable = store[a.animation].frames[frame.index as usize].clone();
     }
 }
 

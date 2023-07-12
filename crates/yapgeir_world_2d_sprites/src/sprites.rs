@@ -1,18 +1,14 @@
 use std::ops::Div;
 
-use derive_more::{AsRef, Deref, DerefMut, From};
+use derive_more::{Deref, DerefMut};
 use hecs::{Entity, With, Without, World};
-use nalgebra::{Point, Vector2};
+use nalgebra::Point;
 use yapgeir_realm::{Realm, Res, ResMut};
 use yapgeir_world_2d::{
     Dirty, DrawQuad, Drawable, Flip, Static, Transform, TransformPpt, WorldCamera,
 };
 
 use yapgeir_reflection::RealmExtensions;
-
-/// An uncropped size of the sprite in meters. Used by DebugRenderer.
-#[derive(Debug, Clone, Copy, Deref, AsRef, From)]
-pub struct DebugSize(pub Vector2<f32>);
 
 /// Applies transformation matrix to a Drawable, updating a DrawQuad.
 fn update_model(
@@ -28,7 +24,7 @@ fn update_model(
     };
 
     *model = drawable
-        .sub_texture
+        .sprite
         .boundaries
         .points()
         .map(|p| mat.transform_point(&Point::from(p).div(**ppt)).into())

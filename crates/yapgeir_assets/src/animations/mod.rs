@@ -1,6 +1,6 @@
 use derive_more::Deref;
 use serde::Deserialize;
-use yapgeir_world_2d::SubTexture;
+use yapgeir_world_2d::Drawable;
 
 pub mod file;
 
@@ -15,7 +15,7 @@ pub enum AnimationKind {
 /// sprites in the atlas.
 #[derive(Debug, Clone)]
 pub struct Animation {
-    pub frames: Vec<SubTexture>,
+    pub frames: Vec<Drawable>,
     pub kind: AnimationKind,
     pub frame_time: f32,
 }

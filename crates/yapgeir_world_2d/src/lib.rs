@@ -5,12 +5,33 @@ use yapgeir_geometry::Box2D;
 use yapgeir_reflection::bevy_reflect::Reflect;
 use yapgeir_reflection::bevy_reflect::{self};
 
-// Defines a single drawable object by it's coordinates on a texture
-// and a crop factor
+pub use sprite_sheet::*;
+
+mod sprite_sheet;
+
+/// A Drawable component represents a sprite.
+///
+/// Defines the logical size of the sprite,
+/// the corresponding rectangle on a texture and a crop rectangle
+/// for sprites that had transparent parts removed from the atlas.
 #[derive(Debug, Clone, Default, Reflect)]
-pub struct SubTexture {
+pub struct Drawable {
+    /// The logical size of the sprite.
+    /// If you have drawn a 32x32 sprite, and an atlas has a cropped version of it,
+    /// the size is [32, 32].
+    ///
+    /// This property is useful for debug drawing, otherwise it is unused.
+    pub size: [u32; 2],
+
+    /// An actual sprite used for rendering.
+    pub sprite: Sprite,
+}
+
+/// The actual
+#[derive(Debug, Clone, Default, Reflect)]
+pub struct Sprite {
     /// This is the clip rectangle in centered pixel coordinates.
-    /// A rectangle from [-5; -5] to [5; 5] would map the sub-texture to a
+    /// A rectangle from [-5, -5] to [5, 5] would map the sub-texture to a
     /// 10x10 pixel square with a center in your transformation translation.
     ///
     /// Why is this necessary at all? Imagine you have a sprite animation of a character
@@ -21,13 +42,8 @@ pub struct SubTexture {
     pub boundaries: Box2D<f32>,
 
     /// This is the location of a sprite on an atlas in texture space.
-    /// A rectangle from [0; 0] to [1; 1] is a full texture.
-    pub sprite: Box2D<f32>,
-}
-
-#[derive(Constructor, Debug, Default, Reflect)]
-pub struct Drawable {
-    pub sub_texture: SubTexture,
+    /// A rectangle from [0, 0] to [1, 1] is a full texture.
+    pub sub_texture: Box2D<f32>,
 }
 
 /// Sprite's quad in world space.
@@ -71,7 +87,7 @@ pub enum Flip {
 /// Transformation matrix of an entity. The unit of this matrix
 /// is an abstract point. Unless `TransformPpt` resource
 /// is registered, it is assumed that one point translates to one pixel.
-#[derive(Default, Debug, Clone, Constructor, Reflect)]
+#[derive(Constructor, Default, Debug, Clone, Reflect)]
 pub struct Transform {
     #[reflect(ignore)]
     pub isometry: Isometry2<f32>,

@@ -1,37 +1,5 @@
-use std::ops::Add;
-
 use bytemuck::Zeroable;
 use derive_more::Constructor;
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct Point<T> {
-    pub x: T,
-    pub y: T,
-}
-
-impl<T> Point<T> {
-    pub const fn new(x: T, y: T) -> Self {
-        Self { x, y }
-    }
-}
-
-impl<T> From<(T, T)> for Point<T> {
-    fn from((x, y): (T, T)) -> Self {
-        Self::new(x, y)
-    }
-}
-
-impl<T> From<[T; 2]> for Point<T> {
-    fn from([x, y]: [T; 2]) -> Self {
-        Self::new(x, y)
-    }
-}
-
-impl<T> From<Point<T>> for [T; 2] {
-    fn from(value: Point<T>) -> Self {
-        [value.x, value.y]
-    }
-}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ImageSize<T> {
@@ -60,6 +28,12 @@ impl<T> From<[T; 2]> for ImageSize<T> {
 impl<T> From<ImageSize<T>> for [T; 2] {
     fn from(value: ImageSize<T>) -> Self {
         [value.w, value.h]
+    }
+}
+
+impl<T> From<ImageSize<T>> for (T, T) {
+    fn from(value: ImageSize<T>) -> Self {
+        (value.w, value.h)
     }
 }
 

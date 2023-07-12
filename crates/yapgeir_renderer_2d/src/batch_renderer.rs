@@ -9,17 +9,12 @@ use yapgeir_graphics_hal::{
     samplers::SamplerAttribute,
     uniforms::{UniformBuffer, Uniforms},
     vertex_buffer::Vertex,
-    Graphics, Point,
+    Graphics,
 };
 
 use crate::quad_index_buffer::QuadIndexBuffer;
 
-pub static CENTERED_UNIT_RECT: [Point<f32>; 4] = [
-    Point::new(-0.5, -0.5),
-    Point::new(-0.5, 0.5),
-    Point::new(0.5, 0.5),
-    Point::new(0.5, -0.5),
-];
+pub static CENTERED_UNIT_RECT: [[f32; 2]; 4] = [[-0.5, -0.5], [-0.5, 0.5], [0.5, 0.5], [0.5, -0.5]];
 
 pub enum BatchIndices<G: Graphics> {
     Quad(QuadIndexBuffer<G>),
