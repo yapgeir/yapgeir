@@ -189,7 +189,7 @@ pub struct Animations {
 
 fn initialize_animations(realm: &mut Realm) {
     realm.initialize_resource_with(|mut animation_storage: ResMut<AnimationStorage>| {
-        let atlas = SpriteSheet::new((64 * 3, 64), (64, 64));
+        let atlas = SpriteSheet::new([64 * 3, 64], [64, 64]);
 
         let player = animation_storage.insert(
             "player",
