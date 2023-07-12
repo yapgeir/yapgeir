@@ -50,6 +50,9 @@ const SHADER: TextShaderSource = TextShaderSource {
                             1.0);
             v_rgba_gamma = a_srgba / 255.0;
             v_tc = a_tc;
+
+            // Flip Y coordinate in UV.
+            gl_Position.y = -gl_Position.y;
         }
     "#,
     fragment: r#"
@@ -287,7 +290,7 @@ impl<G: Graphics> EguiPainter<G> {
                 blend: Some(Blend::alpha()),
                 scissor: Some(Rect::new(
                     clip_min_x,
-                    height_in_pixels - clip_max_y,
+                    clip_min_y,
                     clip_max_x - clip_min_x,
                     clip_max_y - clip_min_y,
                 )),

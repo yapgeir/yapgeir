@@ -17,7 +17,7 @@ use yapgeir_input::{
 use yapgeir_realm::{Realm, Res, ResMut};
 use yapgeir_renderer_2d::{
     quad_index_buffer::QuadIndexBuffer,
-    sprite_renderer::{DrawRegion, SpriteRenderer, SpriteUniforms, TextureRegion},
+    sprite_renderer::{DrawRegion, SpriteRenderer, TextureRegion},
 };
 use yapgeir_sdl::SdlSettings;
 use yapgeir_sdl_graphics::SdlWindowBackend;
@@ -39,7 +39,7 @@ fn main() {
         .initialize_resource::<World>()
         // Initializes entities in ECS
         .run_system(|mut world: ResMut<World>| {
-            for _ in 0..500 {
+            for _ in 0..10_000 {
                 world.spawn((
                     Position(Vector2::new(
                         rand::random::<f32>() * 200. - 100.,
@@ -169,7 +169,6 @@ fn render<G: Graphics>(
     graphics: Res<G>,
     texture: Res<G::Texture>,
     world: Res<World>,
-    window_size: Res<WindowSize>,
 ) {
     let fb = graphics.default_framebuffer();
     fb.clear(

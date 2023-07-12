@@ -36,7 +36,7 @@ impl<B: WindowBackend> DrawDescriptor<Gles<B>> for GlesDrawDescriptor<B> {
                 IndexBinding::None => None,
                 IndexBinding::Some { kind, .. } => Some(kind),
             },
-            inner: if ctx.features.vertex_array_objects {
+            inner: if ctx.extensions.vertex_array_objects {
                 GlesDrawDescriptorImpl::Vao(vao::GlesDrawDescriptor::new(
                     ctx,
                     shader.clone(),

@@ -81,12 +81,17 @@ pub struct GlesTexture<B: WindowBackend> {
 impl<B: WindowBackend> Texture<Gles<B>> for GlesTexture<B> {
     type PixelFormat = GlesPixelFormat;
 
-    fn new<'a>(
+    fn new(
         ctx: Gles<B>,
         format: Self::PixelFormat,
         size: ImageSize<u32>,
         bytes: Option<&[u8]>,
     ) -> Self {
+        if let Some(bytes) = bytes {
+            let stride = format.stride();
+            assert_eq!(bytes.len(), (size.w * size.h) as usize * stride);
+        }
+
         let gl = &ctx.gl;
         let texture = unsafe {
             let (format, ty) = format.gl();
@@ -120,7 +125,7 @@ impl<B: WindowBackend> Texture<Gles<B>> for GlesTexture<B> {
         self.size
     }
 
-    fn write<'a>(
+    fn write(
         &self,
         mipmap_level: u32,
         format: Self::PixelFormat,

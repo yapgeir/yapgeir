@@ -1,7 +1,7 @@
 use std::{ops::Deref, rc::Rc, time::Instant};
 
 use egui_sdl2_platform::Platform;
-use yapgeir_core::Ppt;
+use yapgeir_core::ScreenPpt;
 use yapgeir_egui_painter::{EguiDrawData, EguiPainter};
 use yapgeir_events::Events;
 use yapgeir_graphics_hal::{Graphics, ImageSize};
@@ -24,7 +24,7 @@ impl Gui {
 }
 
 impl Gui {
-    pub fn new(screen_size: ImageSize<u32>, ppt: Ppt) -> Self {
+    pub fn new(screen_size: ImageSize<u32>, ppt: ScreenPpt) -> Self {
         let mut platform =
             Platform::new((screen_size.w, screen_size.h)).expect("Unable to create GUI");
         platform.set_pixels_per_point(Some(ppt.0));
@@ -42,7 +42,7 @@ fn process_input(
     sdl: Res<sdl2::Sdl>,
     video: Res<sdl2::VideoSubsystem>,
     events: Res<Events<sdl2::event::Event>>,
-    ppt: Res<Ppt>,
+    ppt: Res<ScreenPpt>,
 ) {
     for event in events.iter() {
         gui.platform.handle_event(&event, &sdl, &video);
@@ -70,7 +70,11 @@ fn tesselate<G: Graphics>(
     };
 }
 
-pub fn render<'a, G: Graphics>(renderer: &mut EguiRenderer<G>, fb: &G::FrameBuffer, ppt: Ppt) {
+pub fn render<'a, G: Graphics>(
+    renderer: &mut EguiRenderer<G>,
+    fb: &G::FrameBuffer,
+    ppt: ScreenPpt,
+) {
     renderer.painter.paint(fb, *ppt, &renderer.data);
 }
 
@@ -79,7 +83,7 @@ pub fn plugin<'a, G: Graphics, I, S: System<()> + 'static>(
 ) -> impl Plugin {
     move |realm: &mut Realm| {
         realm
-            .initialize_resource_with(|sdl: Res<Rc<sdl2::video::Window>>, ppt: Res<Ppt>| {
+            .initialize_resource_with(|sdl: Res<Rc<sdl2::video::Window>>, ppt: Res<ScreenPpt>| {
                 Gui::new(sdl.drawable_size().into(), *ppt)
             })
             .initialize_resource_with(|ctx: Res<G>| EguiRenderer {

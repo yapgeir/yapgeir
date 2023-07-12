@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use yapgeir_core::{Ppt, WindowSize};
+use yapgeir_core::{ScreenPpt, WindowSize};
 use yapgeir_realm::{Plugin, Realm, Res, ResMut};
 
 use crate::SdlSettings;
@@ -36,7 +36,7 @@ pub fn plugin(settings: SdlSettings) -> impl Plugin {
             .gl_create_context()
             .expect("Unable to create GLContext");
 
-        let ppt = Ppt(window.drawable_size().0 as f32 / window.size().0 as f32);
+        let ppt = ScreenPpt(window.drawable_size().0 as f32 / window.size().0 as f32);
 
         realm
             .add_resource(settings.window_size)

@@ -43,10 +43,12 @@ const SHADER: TextShaderSource = TextShaderSource {
 
         void main() {
             v_tex_position = tex_position;
-            v_tex_position.y = 1 - v_tex_position.y;
             vec2 px = round((view * vec3(position, 1.0)).xy);
             vec2 sc = px * scale;
             gl_Position = vec4(sc, depth, 1.0);
+
+            // Flip Y axis in the UV.
+            gl_Position.y = -gl_Position.y;
         }
     "#,
     fragment: r#"
@@ -143,13 +145,12 @@ pub enum DrawRegion {
     /// at this point without any other transformations.
     Point(Point<f32>),
 
-    /// A rectangle in world space. Will render the sprite in this rectangle
-    /// implicitly doing non-uniform scaling.
+    /// A rectangle in world space. Will "map" the texture rectangle onto the region.
     Rect(Rect<f32>),
 
     /// Will render the sprite in the quad.
     /// This should be used when you have already pre-calculated transformations.
-    /// The quad can be both front or back facing.
+    /// The quad points should be in clockwise order.
     ///
     /// Passing non-convex quads is undefined behavior.
     Quad([Point<f32>; 4]),
@@ -171,9 +172,9 @@ impl DrawRegion {
 
                 [
                     Point::new(point.x - half_size.0, point.y - half_size.1),
-                    Point::new(point.x + half_size.0, point.y - half_size.1),
-                    Point::new(point.x + half_size.0, point.y + half_size.1),
                     Point::new(point.x - half_size.0, point.y + half_size.1),
+                    Point::new(point.x + half_size.0, point.y + half_size.1),
+                    Point::new(point.x + half_size.0, point.y - half_size.1),
                 ]
             }
             DrawRegion::Rect(rect) => rect.points(),
@@ -191,14 +192,14 @@ pub enum TextureRegion {
 
     /// Rectangle in texture space with (0; 0) representing top-left corner,
     /// and (1; 1) representing bottom right corner.
-    TextureSpace(Rect<f32>),
+    Texels(Rect<f32>),
 }
 
 impl TextureRegion {
     pub fn in_texture_space(&self, texture_size: ImageSize<u32>) -> Rect<f32> {
         match self {
             TextureRegion::Full => Rect::new(0.0, 0.0, 1.0, 1.0),
-            TextureRegion::TextureSpace(rect) => rect.clone(),
+            TextureRegion::Texels(rect) => rect.clone(),
             TextureRegion::Pixels(rect) => Rect::new(
                 rect.x as f32 / texture_size.w as f32,
                 rect.y as f32 / texture_size.h as f32,
@@ -211,7 +212,7 @@ impl TextureRegion {
     pub fn pixel_size(&self, texture_size: ImageSize<u32>) -> ImageSize<u32> {
         match self {
             TextureRegion::Full => texture_size,
-            TextureRegion::TextureSpace(rect) => ImageSize::new(
+            TextureRegion::Texels(rect) => ImageSize::new(
                 (rect.w * texture_size.w as f32) as u32,
                 (rect.h * texture_size.h as f32) as u32,
             ),
@@ -232,11 +233,18 @@ where
 
         let depth = (depth as f32 - 32768.) / u16::MAX as f32;
 
+        // Correctly map the UV to the texture region.
+        // Since texture and NDC space have different Y axis directions,
+        // we must flip the Y axis for the texture region.
+        //
+        //   1---2                                      0---3
+        //   | / | in NDC should be mapped to a texture | \ |
+        //   0---3                                      1---2
         self.batch.draw(&[
-            SpriteVertex::new(quad[0].into(), texture_region[0].into(), depth),
-            SpriteVertex::new(quad[1].into(), texture_region[1].into(), depth),
-            SpriteVertex::new(quad[2].into(), texture_region[2].into(), depth),
-            SpriteVertex::new(quad[3].into(), texture_region[3].into(), depth),
+            SpriteVertex::new(quad[0].into(), texture_region[1].into(), depth),
+            SpriteVertex::new(quad[1].into(), texture_region[0].into(), depth),
+            SpriteVertex::new(quad[2].into(), texture_region[3].into(), depth),
+            SpriteVertex::new(quad[3].into(), texture_region[2].into(), depth),
         ])
     }
 }

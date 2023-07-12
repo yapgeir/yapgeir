@@ -2,18 +2,14 @@ use std::{collections::HashMap, mem, ops::Index};
 
 use derive_more::{Constructor, Deref, DerefMut};
 use hecs::{Entity, Without, World};
-use yapgeir_assets::{
-    animations::{Animation, AnimationKind, AnimationSequence},
-    atlas::SubTexture,
-};
+use yapgeir_assets::animations::{Animation, AnimationKind, AnimationSequence};
 use yapgeir_collections::indexed_map::IndexedMap;
 use yapgeir_core::Delta;
 use yapgeir_realm::{system, Realm, Res, ResMut};
 
 use yapgeir_reflection::bevy_reflect::{self};
 use yapgeir_reflection::{bevy_reflect::Reflect, RealmExtensions};
-
-use super::sprites::Drawable;
+use yapgeir_world_2d::{Drawable, SubTexture};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Constructor, Reflect)]
 pub struct AnimationSequenceKey(u16);

@@ -12,13 +12,14 @@ use yapgeir_graphics_hal::{
     },
     sampler::SamplerState,
     samplers::SamplerAttribute,
+    texture::PixelFormat,
     uniforms::{UniformAttribute, Uniforms},
-    ImageSize, Rect, Rgba, WindowBackend,
+    Graphics, ImageSize, Rect, Rgba, WindowBackend,
 };
 
 use crate::{
     constants::GlConstant,
-    context::GlesContextRef,
+    context::{GlesContext, GlesContextRef},
     draw_descriptor::GlesDrawDescriptor,
     shader::{GlesShader, ShaderState, UniformKind},
     texture::{GlesTexture, RgbLayout, RgbaLayout},
@@ -131,8 +132,16 @@ unsafe fn attach<B: WindowBackend>(
     }
 }
 
+// OpenGL uses Y-up coordinate system for everything.
+// This function is used to convert scissor and viewport rectangles from
+// y-down coordinates.
+fn to_y_up(rect: &Rect<u32>, size: &ImageSize<u32>) -> Rect<u32> {
+    Rect::new(rect.x, size.h - rect.y - rect.h, rect.w, rect.h)
+}
+
 enum Resources<B: WindowBackend> {
     Default,
+    FakeDefault,
     Managed {
         size: ImageSize<u32>,
         framebuffer: glow::Framebuffer,
@@ -141,11 +150,38 @@ enum Resources<B: WindowBackend> {
     },
 }
 
+impl GlesContextRef<'_> {
+    fn default_framebuffer_size(&mut self, backend: &impl WindowBackend) -> ImageSize<u32> {
+        match self.state.default_frame_buffer_size {
+            Some(size) => size,
+            None => {
+                let size = backend.default_framebuffer_size();
+                self.state.default_frame_buffer_size = Some(size);
+                size
+            }
+        }
+    }
+}
+
 impl<B: WindowBackend> Resources<B> {
-    fn framebuffer(&self) -> Option<glow::Framebuffer> {
+    fn framebuffer(&self, ctx: &GlesContext<B>) -> Option<glow::Framebuffer> {
         match self {
             Resources::Default => None,
+            Resources::FakeDefault => ctx
+                .fake_framebuffer
+                .borrow()
+                .as_ref()
+                .and_then(|(_, ffb)| ffb.res.framebuffer(&ctx)),
             Resources::Managed { framebuffer, .. } => Some(*framebuffer),
+        }
+    }
+
+    fn size<'a>(&self, ctx: &GlesContext<B>) -> ImageSize<u32> {
+        match self {
+            Resources::Default | Resources::FakeDefault => {
+                ctx.get_ref().default_framebuffer_size(&ctx.backend)
+            }
+            Resources::Managed { size, .. } => *size,
         }
     }
 }
@@ -155,10 +191,44 @@ pub struct GlesFrameBuffer<B: WindowBackend> {
     res: Resources<B>,
 }
 
+pub(crate) fn real_default_framebuffer<B: WindowBackend>(ctx: Gles<B>) -> GlesFrameBuffer<B> {
+    GlesFrameBuffer {
+        ctx,
+        res: Resources::Default,
+    }
+}
+
 impl<B: WindowBackend + 'static> FrameBuffer<Gles<B>> for GlesFrameBuffer<B> {
     type ReadFormat = GlesReadFormat;
 
     fn default(ctx: Gles<B>) -> Self {
+        if ctx.settings.flip_default_framebuffer {
+            let mut ffb = ctx.fake_framebuffer.borrow_mut();
+            let backend = &ctx.backend;
+
+            let size = ctx.get_ref().default_framebuffer_size(backend);
+
+            if ffb.is_none() || ffb.as_ref().map(|(_, ffb)| ffb.size()) != Some(size) {
+                // Recreate the fake framebuffer
+                let texture = Rc::new(ctx.new_texture(PixelFormat::Rgba, size, None));
+                let depth_stencil = ctx.new_render_buffer(size, RenderBufferFormat::DepthStencil);
+                let new_ffb = GlesFrameBuffer::new(
+                    ctx.clone(),
+                    texture.clone(),
+                    DepthStencilAttachment::DepthStencil(Attachment::RenderBuffer(Rc::new(
+                        depth_stencil,
+                    ))),
+                );
+
+                *ffb = Some((texture, new_ffb))
+            }
+
+            return Self {
+                ctx: ctx.clone(),
+                res: Resources::FakeDefault,
+            };
+        }
+
         Self {
             ctx,
             res: Resources::Default,
@@ -211,18 +281,7 @@ impl<B: WindowBackend + 'static> FrameBuffer<Gles<B>> for GlesFrameBuffer<B> {
     }
 
     fn size(&self) -> ImageSize<u32> {
-        let mut ctx = self.ctx.get_ref();
-        match self.res {
-            Resources::Default => match ctx.state.default_frame_buffer_size {
-                Some(size) => size,
-                None => {
-                    let size = self.ctx.backend.default_framebuffer_size();
-                    ctx.state.default_frame_buffer_size = Some(size);
-                    size
-                }
-            },
-            Resources::Managed { size, .. } => size,
-        }
+        self.res.size(&self.ctx)
     }
 
     fn clear(
@@ -232,8 +291,19 @@ impl<B: WindowBackend + 'static> FrameBuffer<Gles<B>> for GlesFrameBuffer<B> {
         depth: Option<f32>,
         stencil: Option<u8>,
     ) {
+        // Flip scissor coordinates, unless we're conforming to a coordinate space
+        let scissor = if self.ctx.settings.flip_default_framebuffer {
+            scissor
+        } else {
+            scissor.map(|scissor| {
+                let size = self.size();
+                to_y_up(&scissor, &size)
+            })
+        };
+
+        let fb = self.res.framebuffer(&self.ctx);
         let mut ctx = self.ctx.get_ref();
-        ctx.bind_frame_buffer(self.res.framebuffer());
+        ctx.bind_frame_buffer(fb);
         ctx.clear(scissor, color, depth, stencil);
     }
 
@@ -246,6 +316,7 @@ impl<B: WindowBackend + 'static> FrameBuffer<Gles<B>> for GlesFrameBuffer<B> {
         indices: &Indices,
     ) {
         let size = self.size();
+        let fb = self.res.framebuffer(&self.ctx);
         let mut ctx = self.ctx.get_ref();
         ctx.use_program(Some(draw_descriptor.shader.program));
         bind_textures(&mut ctx, &draw_descriptor.shader, textures);
@@ -260,17 +331,20 @@ impl<B: WindowBackend + 'static> FrameBuffer<Gles<B>> for GlesFrameBuffer<B> {
         // extracted as a function
         draw_impl(
             &mut ctx,
-            self.res.framebuffer(),
+            fb,
             draw_descriptor,
             draw_parameters,
             size,
             indices,
+            self.ctx.settings.flip_default_framebuffer,
         );
     }
 
     fn read(&self, rect: Rect<u32>, format: GlesReadFormat, target: &mut [u8]) {
+        let fb = self.res.framebuffer(&self.ctx);
+
         let mut ctx = self.ctx.get_ref();
-        ctx.bind_frame_buffer(self.res.framebuffer());
+        ctx.bind_frame_buffer(fb);
 
         let (format, ty) = format.gl();
 
@@ -295,10 +369,11 @@ fn draw_impl<'a, B: WindowBackend>(
     draw_parameters: &DrawParameters,
     size: ImageSize<u32>,
     indices: &Indices,
+    flip_default_framebuffer: bool,
 ) {
     ctx.bind_frame_buffer(frame_buffer);
     draw_descriptor.bind(ctx);
-    set_draw_parameters(ctx, draw_parameters, size);
+    set_draw_parameters(ctx, draw_parameters, size, flip_default_framebuffer);
 
     unsafe {
         match &draw_descriptor.index_kind {
@@ -340,18 +415,34 @@ fn set_draw_parameters<'a>(
     ctx: &mut GlesContextRef<'a>,
     draw_parameters: &DrawParameters,
     framebuffer_size: ImageSize<u32>,
+    flip_default_framebuffer: bool,
 ) {
-    let viewport = draw_parameters
-        .viewport
-        .clone()
-        .unwrap_or_else(|| framebuffer_size.into());
+    let (scissor, viewport) = if flip_default_framebuffer {
+        (
+            draw_parameters.scissor.clone(),
+            draw_parameters.viewport.clone(),
+        )
+    } else {
+        let scissor = draw_parameters
+            .scissor
+            .as_ref()
+            .map(|scissor| to_y_up(&scissor, &framebuffer_size));
+
+        let viewport = draw_parameters
+            .viewport
+            .clone()
+            .map(|viewport| to_y_up(&viewport, &framebuffer_size));
+        (scissor, viewport)
+    };
+
+    let viewport = viewport.unwrap_or_else(|| framebuffer_size.into());
 
     ctx.set_blend(draw_parameters.blend.clone());
     ctx.set_color_mask(draw_parameters.color_mask.clone());
     ctx.set_cull_face(draw_parameters.cull_face);
     ctx.set_depth(draw_parameters.depth.clone());
     ctx.set_stencil(draw_parameters.stencil.clone());
-    ctx.set_scissor(draw_parameters.scissor.clone());
+    ctx.set_scissor(scissor);
     ctx.set_viewport(viewport);
     ctx.set_line_width(draw_parameters.line_width);
     ctx.set_polygon_offset(draw_parameters.polygon_offset.clone());

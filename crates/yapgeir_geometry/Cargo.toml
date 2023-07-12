@@ -5,5 +5,5 @@ edition = "2021"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-nalgebra.workspace = true
+yapgeir_reflection = { path = "../yapgeir_reflection" }
 derive_more.workspace = true

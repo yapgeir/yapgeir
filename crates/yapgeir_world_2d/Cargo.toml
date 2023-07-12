@@ -6,5 +6,7 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 yapgeir_reflection = { path = "../yapgeir_reflection" }
+yapgeir_geometry = { path = "../yapgeir_geometry" }
 nalgebra.workspace = true
 derive_more.workspace = true
+smart-default.workspace = true

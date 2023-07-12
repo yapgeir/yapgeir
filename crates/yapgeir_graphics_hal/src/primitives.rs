@@ -118,20 +118,11 @@ impl<T> Rect<T> {
     where
         T: Add<Output = T> + Copy,
     {
-        self.into()
-    }
-}
-
-impl<T> From<&Rect<T>> for [Point<T>; 4]
-where
-    T: Add<Output = T> + Copy,
-{
-    fn from(value: &Rect<T>) -> Self {
         [
-            Point::new(value.x, value.y),
-            Point::new(value.x + value.w, value.y),
-            Point::new(value.x + value.w, value.y + value.h),
-            Point::new(value.x, value.y + value.h),
+            Point::new(self.x, self.y),
+            Point::new(self.x, self.y + self.h),
+            Point::new(self.x + self.w, self.y + self.h),
+            Point::new(self.x + self.w, self.y),
         ]
     }
 }

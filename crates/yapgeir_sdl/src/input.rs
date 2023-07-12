@@ -2,7 +2,7 @@ use std::{collections::HashMap, rc::Rc};
 
 use sdl2::{controller::Axis, event::WindowEvent};
 use sdl2::{controller::GameController, event::Event as SdlEvent};
-use yapgeir_core::Ppt;
+use yapgeir_core::ScreenPpt;
 use yapgeir_events::Events;
 use yapgeir_input::{
     buttons::ButtonAction,
@@ -66,7 +66,7 @@ fn mouse_button(button: &sdl2::mouse::MouseButton) -> Option<MouseButton> {
 fn update(
     mut input: ResMut<Input>,
     mut controllers: ResMut<SdlControllers>,
-    mut ppt: ResMut<Ppt>,
+    mut ppt: ResMut<ScreenPpt>,
     mut mouse_button_events: ResMut<Events<MouseButtonEvent>>,
     events: Res<Events<SdlEvent>>,
     window: Res<Rc<sdl2::video::Window>>,

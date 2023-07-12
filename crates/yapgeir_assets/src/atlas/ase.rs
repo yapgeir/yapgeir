@@ -77,23 +77,29 @@ impl Rect {
 }
 
 impl Sprite {
-    fn to_sprite(&self, texture_scale: Scale2<f32>, pixels_per_meter: f32) -> super::Sprite {
+    fn to_sprite(&self, texel_scale: Scale2<f32>) -> super::Sprite {
         let half_size = self.source_size.vector() * 0.5;
 
+        // Clip is logically inverted, because it was calculated based on Y down,
+        // but represents Y-up coordinates.
+        // TODO: make this code comprehensible
+        let mut a = self.sprite_source_size.a();
+        let mut b = self.sprite_source_size.b();
+        let ay = a.y;
+        let by = b.y;
+        a.y = self.source_size.h as f32 - by;
+        b.y = self.source_size.h as f32 - ay;
+
         let sub_texture = super::SubTexture {
-            clip: GRect::new(
-                (&self.sprite_source_size.a() - half_size) / pixels_per_meter,
-                (&self.sprite_source_size.b() - half_size) / pixels_per_meter,
-            )
-            .flip_y(),
+            boundaries: GRect::new((&a - half_size).into(), (&b - half_size).into()),
             sprite: GRect::new(
-                texture_scale.transform_point(&self.frame.b()),
-                texture_scale.transform_point(&self.frame.a()),
+                texel_scale.transform_point(&self.frame.a()).into(),
+                texel_scale.transform_point(&self.frame.b()).into(),
             ),
         };
 
         super::Sprite {
-            size: self.source_size.vector() / pixels_per_meter,
+            size: (self.source_size.w, self.source_size.h),
             sub_texture,
         }
     }
@@ -104,15 +110,16 @@ impl AsepriteAtlas {
         Ok(serde_json::from_str(json)?)
     }
 
-    pub fn to_atlas(&self, pixels_per_meter: f32) -> Atlas {
-        let size = vector![self.meta.size.w, self.meta.size.h];
-        let texture_scale = Scale2::from(size).cast::<f32>().pseudo_inverse();
+    pub fn to_atlas(&self) -> Atlas {
+        let texel_space = Scale2::new(self.meta.size.w, self.meta.size.h)
+            .cast::<f32>()
+            .pseudo_inverse();
 
         Atlas {
             sprites: self
                 .frames
                 .iter()
-                .map(|(k, v)| (k.clone(), v.to_sprite(texture_scale, pixels_per_meter)))
+                .map(|(k, v)| (k.clone(), v.to_sprite(texel_space)))
                 .collect(),
             frame_tags: self
                 .meta

@@ -1,7 +1,6 @@
 use derive_more::Deref;
 use serde::Deserialize;
-
-use crate::atlas::SubTexture;
+use yapgeir_world_2d::SubTexture;
 
 pub mod file;
 

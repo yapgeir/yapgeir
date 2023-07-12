@@ -9,13 +9,14 @@ pub mod frame_stats;
 #[derive(Default, Clone, Copy, Deref, Debug, Reflect)]
 pub struct Delta(pub f32);
 
-/// Current frame number
+/// Current frame number.
 #[derive(Default, Clone, Copy, Deref, Debug, Reflect)]
 pub struct Frame(pub u64);
 
-/// Pixels per point
+/// Pixels per point returned by the window manager. Can be used for HiDPI scaling
+/// of user interfaces.
 #[derive(SmartDefault, Clone, Copy, Deref, Debug, Reflect)]
-pub struct Ppt(#[default(1.)] pub f32);
+pub struct ScreenPpt(#[default(1.)] pub f32);
 
 /// Current window size. Refreshed automatically by the window manager on each frame.
 #[derive(Constructor, Clone, Copy, Debug, Reflect)]

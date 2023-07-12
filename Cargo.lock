@@ -1497,6 +1497,7 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "yapgeir_geometry",
+ "yapgeir_world_2d",
 ]
 
 [[package]]
@@ -1550,7 +1551,7 @@ name = "yapgeir_geometry"
 version = "0.1.0"
 dependencies = [
  "derive_more",
- "nalgebra",
+ "yapgeir_reflection",
 ]
 
 [[package]]
@@ -1695,6 +1696,8 @@ version = "0.1.0"
 dependencies = [
  "derive_more",
  "nalgebra",
+ "smart-default",
+ "yapgeir_geometry",
  "yapgeir_reflection",
 ]
 

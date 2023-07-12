@@ -1,5 +1,5 @@
 use derive_more::Constructor;
-use nalgebra::{point, Point2};
+use yapgeir_reflection::bevy_reflect::{self, Reflect};
 
 /// Defines a rectangle by two dots.
 /// Since we are not storing position and size here, by switching points
@@ -7,34 +7,24 @@ use nalgebra::{point, Point2};
 ///  ---     ---
 /// | / |   | \ |
 ///  ---     ---
-#[derive(Constructor, Debug, Clone, Default)]
+#[derive(Constructor, Debug, Clone, Default, Reflect)]
 pub struct Rect {
-    a: Point2<f32>,
-    b: Point2<f32>,
+    pub a: [f32; 2],
+    pub b: [f32; 2],
 }
 
 impl Rect {
     pub fn flip_y(self) -> Self {
-        Self::new(point![self.a.x, -self.a.y], point![self.b.x, -self.b.y])
+        Self::new([self.a[0], -self.a[1]], [self.b[0], -self.b[1]])
     }
 
     #[inline]
-    pub fn points(&self) -> [Point2<f32>; 4] {
+    pub fn points(&self) -> [[f32; 2]; 4] {
         [
-            point![self.a.x, self.b.y],
-            self.b,
-            point![self.b.x, self.a.y],
-            self.a,
-        ]
-    }
-
-    #[inline]
-    pub fn raw_points(&self) -> [[f32; 2]; 4] {
-        [
-            [self.a.x, self.a.y],
-            [self.a.x, self.b.y],
-            [self.b.x, self.b.y],
-            [self.b.x, self.a.y],
+            [self.a[0], self.a[1]],
+            [self.a[0], self.b[1]],
+            [self.b[0], self.b[1]],
+            [self.b[0], self.a[1]],
         ]
     }
 }

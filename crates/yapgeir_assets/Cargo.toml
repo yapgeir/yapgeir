@@ -6,6 +6,7 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 yapgeir_geometry = { path = "../yapgeir_geometry" }
+yapgeir_world_2d = { path = "../yapgeir_world_2d" }
 derive_more.workspace = true
 nalgebra.workspace = true
 anyhow.workspace = true

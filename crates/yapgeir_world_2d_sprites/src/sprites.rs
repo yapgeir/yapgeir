@@ -1,70 +1,104 @@
-use derive_more::{AsRef, Constructor, Deref, From};
-use hecs::{Entity, Without, World};
-use nalgebra::Vector2;
-use yapgeir_assets::atlas::SubTexture;
-use yapgeir_realm::{system, Realm, Res, ResMut};
-use yapgeir_world_2d::{Flip, Transform, WorldCamera};
+use std::ops::Div;
 
-use yapgeir_reflection::bevy_reflect::Reflect;
-use yapgeir_reflection::{bevy_reflect, RealmExtensions};
+use derive_more::{AsRef, Deref, DerefMut, From};
+use hecs::{Entity, With, Without, World};
+use nalgebra::{Point, Vector2};
+use yapgeir_realm::{Realm, Res, ResMut};
+use yapgeir_world_2d::{
+    Dirty, DrawQuad, Drawable, Flip, Static, Transform, TransformPpt, WorldCamera,
+};
+
+use yapgeir_reflection::RealmExtensions;
 
 /// An uncropped size of the sprite in meters. Used by DebugRenderer.
 #[derive(Debug, Clone, Copy, Deref, AsRef, From)]
 pub struct DebugSize(pub Vector2<f32>);
 
-#[derive(Constructor, Debug, Default, Reflect)]
-pub struct Drawable {
-    #[reflect(ignore)]
-    pub sub_texture: SubTexture,
+fn update_model(
+    ppt: &TransformPpt,
+    (_, (transform, drawable, model)): (Entity, (&Transform, &Drawable, &mut DrawQuad)),
+) {
+    // Transform is in world space, which is in meters, but sub_texture clip space is in pixels
+    let mut mat = transform.isometry.to_homogeneous();
+    match transform.flip {
+        Some(Flip::X) => mat[0] *= -1.,
+        Some(Flip::Y) => mat[4] *= -1.,
+        None => {}
+    };
+
+    *model = drawable
+        .sub_texture
+        .boundaries
+        .points()
+        .map(|p| mat.transform_point(&Point::from(p).div(**ppt)).into())
+        .into();
 }
 
-// Sprite's quad in world space
-#[derive(Debug, Clone, Deref, From, Default, Reflect)]
-pub struct DrawQuad([[f32; 2]; 4]);
+/// This resource is used to reduce allocations.
+/// Essentially this is a cached-forever Vec, that is used
+/// to update/remove components in systems.
+#[derive(Default, Deref, DerefMut)]
+struct SpritesEntityCache(Vec<Entity>);
 
-impl DrawQuad {
-    fn update_model(
-        (_, (transform, drawable, model)): (Entity, (&Transform, &Drawable, &mut DrawQuad)),
-    ) {
-        let mut mat = transform.isometry.to_homogeneous();
-        match transform.flip {
-            Some(Flip::X) => mat[0] *= -1.,
-            Some(Flip::Y) => mat[4] *= -1.,
-            None => {}
-        };
-
-        let points = drawable.sub_texture.clip.points();
-        *model = points.map(|p| mat.transform_point(&p).into()).into();
-    }
-}
-
-#[derive(Default)]
-struct DrawQuadAdder(Vec<Entity>);
-
-#[system]
-impl DrawQuadAdder {
-    fn update(&mut self, mut world: ResMut<World>) {
-        self.0.clear();
-        for (e, _) in world
-            .query::<Without<(&Transform, &Drawable), &DrawQuad>>()
-            .iter()
-        {
-            self.0.push(e);
-        }
-
-        for e in &self.0 {
-            world
-                .insert_one(e.clone(), DrawQuad::default())
-                .expect("Unable to insert Drawable for entity");
-        }
-    }
-}
-
-fn update_quads(world: Res<World>) {
+fn add_draw_quads(mut world: ResMut<World>, mut cache: ResMut<SpritesEntityCache>) {
+    // Add a DrawQuad to all non-static entities
     world
-        .query::<(&Transform, &Drawable, &mut DrawQuad)>()
+        .query::<Without<Without<(&Transform, &Drawable), &DrawQuad>, &Static>>()
         .iter()
-        .for_each(DrawQuad::update_model)
+        .for_each(|(e, _)| {
+            cache.push(e);
+        });
+
+    for e in cache.drain(0..) {
+        world
+            .insert_one(e.clone(), DrawQuad::default())
+            .expect("Unable to insert Drawable for entity");
+    }
+
+    // Add a DrawQuad and Dirty to all static entities. Since we've already iterated
+    // all non-static ones, the only remaining ones are static.
+    world
+        .query::<Without<(&Transform, &Drawable), &DrawQuad>>()
+        .iter()
+        .for_each(|(e, _)| {
+            cache.push(e);
+        });
+
+    for e in cache.drain(0..) {
+        world
+            .insert(e.clone(), (DrawQuad::default(), Dirty))
+            .expect("Unable to insert Drawable and Dirty for entity");
+    }
+}
+
+fn update_quads(
+    mut world: ResMut<World>,
+    mut cache: ResMut<SpritesEntityCache>,
+    ppt: Option<Res<TransformPpt>>,
+) {
+    let ppt = ppt.as_deref().cloned().unwrap_or_default();
+
+    // Update non-static entities
+    world
+        .query::<Without<(&Transform, &Drawable, &mut DrawQuad), &Static>>()
+        .iter()
+        .for_each(|entity| update_model(&ppt, entity));
+
+    // Update dirty static entities
+    world
+        .query::<With<With<(&Transform, &Drawable, &mut DrawQuad), &Static>, &Dirty>>()
+        .iter()
+        .for_each(|entity| {
+            cache.push(entity.0);
+            update_model(&ppt, entity);
+        });
+
+    // Remove dirty flag
+    for e in cache.drain(0..) {
+        world
+            .remove_one::<Dirty>(e.clone())
+            .expect("Unable to insert Drawable for entity");
+    }
 }
 
 pub fn plugin(realm: &mut Realm) {
@@ -72,6 +106,7 @@ pub fn plugin(realm: &mut Realm) {
         .register_type::<DrawQuad>()
         .register_type::<Drawable>()
         .initialize_resource::<WorldCamera>()
-        .add_system(DrawQuadAdder::default())
+        .initialize_resource::<SpritesEntityCache>()
+        .add_system(add_draw_quads)
         .add_system(update_quads);
 }

@@ -1,4 +1,7 @@
-use std::cell::{RefCell, RefMut};
+use std::{
+    cell::{RefCell, RefMut},
+    rc::Rc,
+};
 
 use derive_more::Constructor;
 use enum_map::EnumMap;
@@ -11,7 +14,10 @@ use yapgeir_graphics_hal::{
     ImageSize, Rect, Rgba, WindowBackend,
 };
 
-use crate::{constants::GlConstant, samplers::Samplers};
+use crate::{
+    blit_framebuffer::TextureRenderer, constants::GlConstant, frame_buffer::GlesFrameBuffer,
+    samplers::Samplers, texture::GlesTexture, Gles, GlesSettings,
+};
 
 pub(crate) const MAX_TEXTURES: usize = 32;
 
@@ -99,7 +105,7 @@ pub struct GlesState {
     pub draw_descriptor_cache: super::draw_descriptor::DrawDescriptorCache,
 }
 
-pub struct Features {
+pub struct Extensions {
     pub vertex_array_objects: bool,
     pub sampler_objects: bool,
 }
@@ -108,12 +114,17 @@ pub struct GlesContext<B: WindowBackend> {
     pub(crate) gl: glow::Context,
     pub(crate) backend: B,
     pub(crate) state: RefCell<GlesState>,
-    pub(crate) features: Features,
+    pub(crate) extensions: Extensions,
+
+    pub(crate) settings: GlesSettings,
+
+    pub(crate) texture_renderer: RefCell<Option<TextureRenderer<Gles<B>>>>,
+    pub(crate) fake_framebuffer: RefCell<Option<(Rc<GlesTexture<B>>, GlesFrameBuffer<B>)>>,
 }
 
 impl<B: WindowBackend> Drop for GlesContext<B> {
     fn drop(&mut self) {
-        if self.features.sampler_objects {
+        if self.extensions.sampler_objects {
             let mut state = self.state.borrow_mut();
             for i in 0..state.texture_unit_limit {
                 unsafe { self.gl.bind_sampler(i as u32, None) };
@@ -121,11 +132,15 @@ impl<B: WindowBackend> Drop for GlesContext<B> {
 
             state.samplers.drain(&self.gl);
         }
+
+        // This is horrible and temporary
+        self.fake_framebuffer.borrow_mut().take();
+        self.texture_renderer.borrow_mut().take();
     }
 }
 
 impl<B: WindowBackend> GlesContext<B> {
-    pub(crate) unsafe fn new(backend: B) -> Self {
+    pub(crate) unsafe fn new(backend: B, settings: GlesSettings) -> Self {
         let gl = glow::Context::from_loader_function(|s| backend.get_proc_address(s));
         let texture_unit_limit = gl.get_parameter_i32(glow::MAX_TEXTURE_IMAGE_UNITS) as usize;
 
@@ -142,10 +157,13 @@ impl<B: WindowBackend> GlesContext<B> {
                     ..Default::default()
                 })
             },
-            features: Features {
+            extensions: Extensions {
                 vertex_array_objects: extensions.contains("GL_OES_vertex_array_object"),
                 sampler_objects: extensions.contains("GL_ARB_sampler_objects"),
             },
+            settings,
+            texture_renderer: RefCell::new(None),
+            fake_framebuffer: RefCell::new(None),
             gl,
         }
     }
@@ -154,7 +172,7 @@ impl<B: WindowBackend> GlesContext<B> {
         GlesContextRef {
             gl: &self.gl,
             state: self.state.borrow_mut(),
-            features: &self.features,
+            features: &self.extensions,
         }
     }
 }
@@ -163,7 +181,7 @@ pub(crate) struct GlesContextRef<'a> {
     pub gl: &'a glow::Context,
     pub state: RefMut<'a, GlesState>,
 
-    pub features: &'a Features,
+    pub features: &'a Extensions,
 }
 
 impl<'a> GlesContextRef<'a> {

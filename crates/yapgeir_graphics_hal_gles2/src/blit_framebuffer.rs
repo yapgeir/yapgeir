@@ -25,11 +25,8 @@ const SHADER: TextShaderSource = TextShaderSource {
 
         void main() {
             v_tex_position = (position + 1) * 0.5;
-            gl_Position = vec4(position, 1, 1);
-
-            // Flip Y axis in both tex position and a UV.
             v_tex_position.y = 1 - v_tex_position.y;
-            gl_Position.y = -gl_Position.y;
+            gl_Position = vec4(position, 1, 1);
         }
     "#,
     fragment: r#"
