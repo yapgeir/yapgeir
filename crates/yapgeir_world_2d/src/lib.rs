@@ -1,7 +1,7 @@
 use derive_more::{Constructor, Deref, DerefMut, From};
 use nalgebra::{Isometry2, Matrix3};
 use smart_default::SmartDefault;
-use yapgeir_geometry::Rect;
+use yapgeir_geometry::Box2D;
 use yapgeir_reflection::bevy_reflect::Reflect;
 use yapgeir_reflection::bevy_reflect::{self};
 
@@ -10,13 +10,19 @@ use yapgeir_reflection::bevy_reflect::{self};
 #[derive(Debug, Clone, Default, Reflect)]
 pub struct SubTexture {
     /// This is the clip rectangle in centered pixel coordinates.
-    /// A rectangle from [-5; -5] to [5; 5] would map the subtexture to a
+    /// A rectangle from [-5; -5] to [5; 5] would map the sub-texture to a
     /// 10x10 pixel square with a center in your transformation translation.
-    pub boundaries: Rect,
+    ///
+    /// Why is this necessary at all? Imagine you have a sprite animation of a character
+    /// where each frame is 32x32 px. Naturally some of the pixels will be transparent.
+    /// These pixels can then be cropped out from an atlas. But this needs to be accounted
+    /// for during rendering, so that you can draw the sub-texture, as if it's a 32x32 px
+    /// with transparent parts.
+    pub boundaries: Box2D<f32>,
 
     /// This is the location of a sprite on an atlas in texture space.
-    /// A Rect from [0; 0] to [1; 1] is a full texture.
-    pub sprite: Rect,
+    /// A rectangle from [0; 0] to [1; 1] is a full texture.
+    pub sprite: Box2D<f32>,
 }
 
 #[derive(Constructor, Debug, Default, Reflect)]
@@ -29,6 +35,9 @@ pub struct Drawable {
 /// `yapgeir_world_2d_sprites` plugin will automatically add this component
 /// to all entities with `Drawable` and `Transform` components,
 /// and will update it's value on every frame.
+///
+/// You don't need to add or edit this component to your entities,
+/// it will be managed automatically.
 #[derive(Debug, Clone, Deref, From, Default, Reflect)]
 pub struct DrawQuad([[f32; 2]; 4]);
 

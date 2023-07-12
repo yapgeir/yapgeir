@@ -1,6 +1,7 @@
 use std::ops::Add;
 
 use bytemuck::Zeroable;
+use derive_more::Constructor;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Point<T> {
@@ -101,30 +102,12 @@ impl<T> From<Rgba<T>> for [T; 4] {
     }
 }
 
-#[derive(Default, Clone, Debug, PartialEq, Eq)]
+#[derive(Constructor, Default, Clone, Debug, PartialEq, Eq)]
 pub struct Rect<T> {
     pub x: T,
     pub y: T,
     pub w: T,
     pub h: T,
-}
-
-impl<T> Rect<T> {
-    pub fn new(x: T, y: T, w: T, h: T) -> Self {
-        Self { x, y, w, h }
-    }
-
-    pub fn points(&self) -> [Point<T>; 4]
-    where
-        T: Add<Output = T> + Copy,
-    {
-        [
-            Point::new(self.x, self.y),
-            Point::new(self.x, self.y + self.h),
-            Point::new(self.x + self.w, self.y + self.h),
-            Point::new(self.x + self.w, self.y),
-        ]
-    }
 }
 
 impl<T> From<(T, T, T, T)> for Rect<T> {

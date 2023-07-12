@@ -187,7 +187,7 @@ fn render<G: Graphics>(
 
         for (_, tile) in world.query::<&Position>().iter() {
             batch.draw_sprite(
-                DrawRegion::Point((tile.0.x as f32, tile.0.y as f32).into()),
+                DrawRegion::Point(tile.0.cast().into()),
                 TextureRegion::Full,
                 0,
             );

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use anyhow::Result;
 use nalgebra::{point, vector, Point2, Scale2, Vector2};
 use serde::Deserialize;
-use yapgeir_geometry::Rect as GRect;
+use yapgeir_geometry::Box2D as GRect;
 
 use super::Atlas;
 

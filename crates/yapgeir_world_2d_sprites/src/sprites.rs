@@ -14,6 +14,7 @@ use yapgeir_reflection::RealmExtensions;
 #[derive(Debug, Clone, Copy, Deref, AsRef, From)]
 pub struct DebugSize(pub Vector2<f32>);
 
+/// Applies transformation matrix to a Drawable, updating a DrawQuad.
 fn update_model(
     ppt: &TransformPpt,
     (_, (transform, drawable, model)): (Entity, (&Transform, &Drawable, &mut DrawQuad)),

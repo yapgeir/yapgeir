@@ -1,30 +1,49 @@
+use std::ops::Add;
+
 use derive_more::Constructor;
 use yapgeir_reflection::bevy_reflect::{self, Reflect};
 
-/// Defines a rectangle by two dots.
-/// Since we are not storing position and size here, by switching points
-/// we can change rectangles orientation
-///  ---     ---
-/// | / |   | \ |
-///  ---     ---
-#[derive(Constructor, Debug, Clone, Default, Reflect)]
-pub struct Rect {
-    pub a: [f32; 2],
-    pub b: [f32; 2],
+/// A rectangle defined as an origin point and a size.
+#[derive(Constructor, Default, Debug, Clone, PartialEq, Eq, Reflect)]
+pub struct Rect<T> {
+    pub x: T,
+    pub y: T,
+    pub w: T,
+    pub h: T,
 }
 
-impl Rect {
-    pub fn flip_y(self) -> Self {
-        Self::new([self.a[0], -self.a[1]], [self.b[0], -self.b[1]])
-    }
-
-    #[inline]
-    pub fn points(&self) -> [[f32; 2]; 4] {
+impl<T> Rect<T> {
+    pub fn points(&self) -> [[T; 2]; 4]
+    where
+        T: Add<Output = T> + Copy,
+    {
         [
-            [self.a[0], self.a[1]],
-            [self.a[0], self.b[1]],
-            [self.b[0], self.b[1]],
-            [self.b[0], self.a[1]],
+            [self.x, self.y],
+            [self.x, self.y + self.h],
+            [self.x + self.w, self.y + self.h],
+            [self.x + self.w, self.y],
+        ]
+    }
+}
+
+/// A representation of a rectangle by two points of a diagonal.
+#[derive(Constructor, Default, Debug, Clone, PartialEq, Eq, Reflect)]
+pub struct Box2D<T> {
+    pub min: [T; 2],
+    pub max: [T; 2],
+}
+
+impl<T> Box2D<T> {
+    #[inline]
+    pub fn points(&self) -> [[T; 2]; 4]
+    where
+        T: Copy,
+    {
+        [
+            [self.min[0], self.min[1]],
+            [self.min[0], self.max[1]],
+            [self.max[0], self.max[1]],
+            [self.max[0], self.min[1]],
         ]
     }
 }

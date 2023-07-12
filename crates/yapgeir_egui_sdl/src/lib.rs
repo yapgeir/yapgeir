@@ -50,7 +50,7 @@ fn process_input(
 
     let elapsed = gui.start_time.elapsed().as_secs_f64();
     gui.platform.update_time(elapsed);
-    gui.platform.set_pixels_per_point(Some(ppt.0));
+    gui.platform.set_pixels_per_point(Some(**ppt));
 }
 
 #[cfg_attr(feature = "instrumentation", yapgeir_instrument::instrument)]

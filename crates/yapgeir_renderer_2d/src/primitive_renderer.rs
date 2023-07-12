@@ -2,9 +2,10 @@ use std::rc::Rc;
 
 use crate::batch_renderer::{Batch, BatchIndices, BatchRenderer};
 use bytemuck::{Pod, Zeroable};
+use yapgeir_geometry::Rect;
 use yapgeir_graphics_hal::{
     draw_params::DrawParameters, index_buffer::PrimitiveMode, shader::TextShaderSource,
-    uniforms::Uniforms, vertex_buffer::Vertex, Graphics, Point, Rect, Rgba,
+    uniforms::Uniforms, vertex_buffer::Vertex, Graphics, Rgba,
 };
 
 #[cfg(not(target_os = "vita"))]
@@ -78,7 +79,7 @@ pub struct PrimitiveBatch<'a, G: Graphics> {
 }
 
 impl<G: Graphics> PrimitiveBatch<'_, G> {
-    pub fn draw_line(&mut self, start: Point<f32>, end: Point<f32>, color: Rgba<f32>) {
+    pub fn draw_line(&mut self, start: [f32; 2], end: [f32; 2], color: Rgba<f32>) {
         self.batch.draw(&[
             PrimitiveVertex {
                 position: start.into(),
@@ -91,7 +92,7 @@ impl<G: Graphics> PrimitiveBatch<'_, G> {
         ]);
     }
 
-    pub fn draw_polygon(&mut self, points: &[Point<f32>], color: Rgba<f32>) {
+    pub fn draw_polygon(&mut self, points: &[[f32; 2]], color: Rgba<f32>) {
         for i in 0..points.len() {
             self.draw_line(points[i], points[(i + 1) % points.len()], color);
         }

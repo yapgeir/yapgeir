@@ -1,5 +1,6 @@
 use bytemuck::{Pod, Zeroable};
 use std::rc::Rc;
+use yapgeir_geometry::Rect;
 use yapgeir_graphics_hal::{
     draw_params::Blend,
     draw_params::{
@@ -13,7 +14,7 @@ use yapgeir_graphics_hal::{
     texture::Texture,
     uniforms::Uniforms,
     vertex_buffer::Vertex,
-    Graphics, ImageSize, Point, Rect,
+    Graphics, ImageSize,
 };
 
 use crate::{
@@ -143,7 +144,7 @@ where
 pub enum DrawRegion {
     /// A point in world space. This will render the sprite with it's center
     /// at this point without any other transformations.
-    Point(Point<f32>),
+    Point([f32; 2]),
 
     /// A rectangle in world space. Will "map" the texture rectangle onto the region.
     Rect(Rect<f32>),
@@ -153,7 +154,7 @@ pub enum DrawRegion {
     /// The quad points should be in clockwise order.
     ///
     /// Passing non-convex quads is undefined behavior.
-    Quad([Point<f32>; 4]),
+    Quad([[f32; 2]; 4]),
 }
 
 impl DrawRegion {
@@ -162,7 +163,7 @@ impl DrawRegion {
         self,
         texture_region: &TextureRegion,
         texture_size: ImageSize<u32>,
-    ) -> [Point<f32>; 4] {
+    ) -> [[f32; 2]; 4] {
         match self {
             DrawRegion::Point(point) => {
                 // Here we calculate the quad assuming that the center of it is our point,
@@ -171,10 +172,10 @@ impl DrawRegion {
                 let half_size = (quad_size.w as f32 / 2., quad_size.h as f32 / 2.);
 
                 [
-                    Point::new(point.x - half_size.0, point.y - half_size.1),
-                    Point::new(point.x - half_size.0, point.y + half_size.1),
-                    Point::new(point.x + half_size.0, point.y + half_size.1),
-                    Point::new(point.x + half_size.0, point.y - half_size.1),
+                    [point[0] - half_size.0, point[1] - half_size.1],
+                    [point[0] - half_size.0, point[1] + half_size.1],
+                    [point[0] + half_size.0, point[1] + half_size.1],
+                    [point[0] + half_size.0, point[1] - half_size.1],
                 ]
             }
             DrawRegion::Rect(rect) => rect.points(),
