@@ -16,19 +16,22 @@ fn update_model(
     ppt: &TransformPpt,
     (_, (transform, drawable, model)): (Entity, (&Transform, &Drawable, &mut DrawQuad)),
 ) {
-    // Transform is in world space, which is in meters, but sub_texture clip space is in pixels
-    let mut mat = transform.isometry.to_homogeneous();
-    match transform.flip {
-        Some(Flip::X) => mat[0] *= -1.,
-        Some(Flip::Y) => mat[4] *= -1.,
-        None => {}
-    };
-
     *model = drawable
         .sprite
         .boundaries
         .points()
-        .map(|p| mat.transform_point(&Point::from(p).div(**ppt)).into())
+        .map(|mut p| {
+            match transform.flip {
+                Some(Flip::X) => p[0] = -p[0],
+                Some(Flip::Y) => p[1] = -p[1],
+                None => (),
+            };
+
+            transform
+                .isometry
+                .transform_point(&Point::from(p).div(**ppt))
+                .into()
+        })
         .into();
 }
 
