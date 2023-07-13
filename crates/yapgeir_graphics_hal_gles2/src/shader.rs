@@ -11,7 +11,7 @@ use yapgeir_graphics_hal::{
 use crate::Gles;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum UniformKind {
+pub enum UniformKind {
     Int,
     IntVec2,
     IntVec3,
@@ -43,21 +43,21 @@ impl UniformKind {
     }
 }
 
-pub(crate) struct ShaderState {
+pub struct ShaderState {
     pub sampler_attributes: HashMap<String, (glow::UniformLocation, u8)>,
     pub uniforms_cache: (&'static [UniformAttribute], Vec<u8>),
 }
 
 pub struct GlesShader<B: WindowBackend> {
-    pub(crate) ctx: Gles<B>,
-    pub(crate) program: glow::Program,
-    pub(crate) attribute_data: HashMap<String, u32>,
-    pub(crate) uniform_attributes: HashMap<String, (glow::UniformLocation, UniformKind, usize)>,
+    pub ctx: Gles<B>,
+    pub program: glow::Program,
+    pub attribute_data: HashMap<String, u32>,
+    pub uniform_attributes: HashMap<String, (glow::UniformLocation, UniformKind, usize)>,
 
-    pub(crate) state: RefCell<ShaderState>,
+    pub state: RefCell<ShaderState>,
 }
 
-unsafe fn compile_program(gl: &glow::Context, source: &TextShaderSource) -> glow::Program {
+pub unsafe fn compile_program(gl: &glow::Context, source: &TextShaderSource) -> glow::Program {
     let program = gl.create_program().expect("Cannot create program");
     let shaders = [
         (glow::VERTEX_SHADER, source.vertex),

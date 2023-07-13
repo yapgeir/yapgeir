@@ -74,8 +74,8 @@ impl GlesPixelFormat {
 pub struct GlesTexture<B: WindowBackend> {
     ctx: Gles<B>,
     format: GlesPixelFormat,
-    pub(crate) size: ImageSize<u32>,
-    pub(crate) texture: glow::Texture,
+    pub size: ImageSize<u32>,
+    pub texture: glow::Texture,
 }
 
 impl<B: WindowBackend> Texture<Gles<B>> for GlesTexture<B> {

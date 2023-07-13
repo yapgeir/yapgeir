@@ -78,7 +78,10 @@ fn update(
             } => {
                 if let Some(button) = mouse_button(mouse_btn) {
                     mouse_button_events.push(MouseButtonEvent {
-                        coordinate: Axial::new(*x, *y),
+                        coordinate: Axial::new(
+                            (*x as f32 * **ppt as f32) as i32,
+                            (*y as f32 * **ppt as f32) as i32,
+                        ),
                         button,
                         action: ButtonAction::Down,
                     });
@@ -93,7 +96,10 @@ fn update(
             } => {
                 if let Some(button) = mouse_button(mouse_btn) {
                     mouse_button_events.push(MouseButtonEvent {
-                        coordinate: Axial::new(*x, *y),
+                        coordinate: Axial::new(
+                            (*x as f32 * **ppt as f32) as i32,
+                            (*y as f32 * **ppt as f32) as i32,
+                        ),
                         button,
                         action: ButtonAction::Up,
                     });
@@ -103,16 +109,16 @@ fn update(
                 }
             }
             SdlEvent::MouseWheel { x, y, .. } => {
-                input.mouse.wheel.x = *x;
-                input.mouse.wheel.y = *y;
+                input.mouse.wheel.x = (*x as f32 * **ppt as f32) as i32;
+                input.mouse.wheel.y = (*y as f32 * **ppt as f32) as i32;
             }
             SdlEvent::MouseMotion {
                 x, y, xrel, yrel, ..
             } => {
-                input.mouse.motion.x = *xrel;
-                input.mouse.motion.y = *yrel;
-                input.mouse.cursor_position.x = *x;
-                input.mouse.cursor_position.y = *y;
+                input.mouse.motion.x = (*xrel as f32 * **ppt as f32) as i32;
+                input.mouse.motion.y = (*yrel as f32 * **ppt as f32) as i32;
+                input.mouse.cursor_position.x = (*x as f32 * **ppt as f32) as i32;
+                input.mouse.cursor_position.y = (*y as f32 * **ppt as f32) as i32;
             }
             SdlEvent::KeyDown {
                 scancode: Some(scancode),

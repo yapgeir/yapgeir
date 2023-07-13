@@ -1,34 +1,37 @@
-use std::{default, rc::Rc};
+use std::rc::Rc;
 
-use blit_framebuffer::TextureRenderer;
 use buffer::GlesBuffer;
 use bytemuck::Pod;
 use context::GlesContext;
 use derive_more::Deref;
 use draw_descriptor::GlesDrawDescriptor;
-use frame_buffer::{real_default_framebuffer, GlesFrameBuffer, GlesReadFormat, GlesRenderBuffer};
+use fake_default_framebuffer::ScreenFlipper;
+use frame_buffer::{GlesFrameBuffer, GlesRenderBuffer};
 use shader::GlesShader;
 use smart_default::SmartDefault;
-use texture::{GlesPixelFormat, GlesTexture};
+use texture::GlesTexture;
 use uniforms::GlesUniformBuffer;
 use yapgeir_graphics_hal::{
-    buffer::BufferUsage, frame_buffer::RenderBufferFormat, sampler::Sampler, Graphics,
-    WindowBackend,
+    buffer::BufferUsage, frame_buffer::RenderBufferFormat, Graphics, WindowBackend,
 };
 
-mod blit_framebuffer;
+/// Re-export extended variants of the default enums
+pub use texture::GlesPixelFormat;
+pub use frame_buffer::GlesReadFormat;
+
 mod buffer;
 mod constants;
-pub mod context;
-pub mod draw_descriptor;
-pub mod frame_buffer;
+mod context;
+mod draw_descriptor;
+mod fake_default_framebuffer;
+mod frame_buffer;
 mod samplers;
-pub mod shader;
-pub mod texture;
-pub mod uniforms;
+mod shader;
+mod texture;
+mod uniforms;
 
 #[derive(Deref)]
-pub struct Gles<B: WindowBackend>(pub(crate) Rc<GlesContext<B>>);
+pub struct Gles<B: WindowBackend>(pub Rc<GlesContext<B>>);
 
 #[derive(SmartDefault, Clone)]
 pub struct GlesSettings {
@@ -36,22 +39,23 @@ pub struct GlesSettings {
     /// and during swap_buffers a new draw call will be issued to blit the fake framebuffer
     /// onto the screen but inverting the Y axis.
     ///
-    /// This is done to conform with the coordinate system of graphics-hal.
+    /// This is done to conform to the coordinate system of graphics-hal, which is
+    /// Y up for NDC, and Y down for frame buffers and textures.
     #[default(true)]
     pub flip_default_framebuffer: bool,
 }
 
 impl<B: WindowBackend> Gles<B> {
     pub fn new_with_settings(backend: B, settings: GlesSettings) -> Self {
-        let ctx = unsafe { Self(Rc::new(GlesContext::new(backend, settings))) };
+        let flip_default_framebuffer = settings.flip_default_framebuffer;
+        let mut ctx = unsafe { GlesContext::new(backend, settings) };
 
-        let texture_renderer = TextureRenderer::new(&ctx);
-        {
-            let mut tr = ctx.texture_renderer.borrow_mut();
-            *tr = Some(texture_renderer);
+        if flip_default_framebuffer {
+            let screen_flipper = unsafe { ScreenFlipper::new(&mut ctx.get_ref(), ctx.default_framebuffer_size()) };
+            ctx.screen_flipper = Some(screen_flipper);
         }
 
-        ctx
+        Self(Rc::new(ctx))
     }
 }
 
@@ -80,20 +84,14 @@ impl<B: WindowBackend + 'static> Graphics for Gles<B> {
     }
 
     fn swap_buffers(&self) {
-        if let Some(texture_renderer) = self.texture_renderer.borrow().as_ref() {
-            if let Some((tex, _)) = self.fake_framebuffer.borrow().as_ref() {
-                texture_renderer.render(
-                    &real_default_framebuffer(self.clone()),
-                    Sampler::nearest(tex),
-                    &default::Default::default(),
-                );
-            }
+        let mut ctx = self.get_ref();
+
+        if let Some(screen_flipper) = &self.screen_flipper {
+            unsafe { screen_flipper.blit(&mut ctx) };
         }
 
-        let mut ctx = self.get_ref();
         ctx.bind_frame_buffer(None);
-        ctx.state.default_frame_buffer_size = None;
-
+        self.default_framebuffer_size.take();
         self.backend.swap_buffers();
     }
 }

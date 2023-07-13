@@ -39,7 +39,7 @@ fn main() {
         .initialize_resource::<World>()
         // Initializes entities in ECS
         .run_system(|mut world: ResMut<World>| {
-            for _ in 0..10_000 {
+            for _ in 0..1000 {
                 world.spawn((
                     Position(Vector2::new(
                         rand::random::<f32>() * 200. - 100.,

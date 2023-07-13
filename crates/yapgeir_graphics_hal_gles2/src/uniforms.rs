@@ -6,7 +6,7 @@ use yapgeir_graphics_hal::{uniforms::UniformBuffer, WindowBackend};
 use crate::Gles;
 
 pub struct GlesUniformBuffer<T> {
-    pub(crate) value: RefCell<T>,
+    pub value: RefCell<T>,
 }
 
 impl<B: WindowBackend, T: Pod> UniformBuffer<Gles<B>, T> for GlesUniformBuffer<T> {

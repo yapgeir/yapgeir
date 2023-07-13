@@ -1,7 +1,4 @@
-use std::{
-    cell::{RefCell, RefMut},
-    rc::Rc,
-};
+use std::cell::{RefCell, RefMut, Cell};
 
 use derive_more::Constructor;
 use enum_map::EnumMap;
@@ -15,11 +12,13 @@ use yapgeir_graphics_hal::{
 };
 
 use crate::{
-    blit_framebuffer::TextureRenderer, constants::GlConstant, frame_buffer::GlesFrameBuffer,
-    samplers::Samplers, texture::GlesTexture, Gles, GlesSettings,
+    constants::GlConstant,
+    fake_default_framebuffer::ScreenFlipper,
+    samplers::Samplers,
+    GlesSettings,
 };
 
-pub(crate) const MAX_TEXTURES: usize = 32;
+pub const MAX_TEXTURES: usize = 32;
 
 fn set_parameter(gl: &glow::Context, parameter: u32, value: bool) {
     if value {
@@ -67,9 +66,6 @@ pub struct TextureUnit {
 /// currently bound objects.
 #[derive(SmartDefault)]
 pub struct GlesState {
-    // This value must be reset on every flip
-    pub default_frame_buffer_size: Option<ImageSize<u32>>,
-
     pub clear_color: Rgba<f32>,
     pub clear_depth: f32,
     pub clear_stencil: u8,
@@ -111,15 +107,13 @@ pub struct Extensions {
 }
 
 pub struct GlesContext<B: WindowBackend> {
-    pub(crate) gl: glow::Context,
-    pub(crate) backend: B,
-    pub(crate) state: RefCell<GlesState>,
-    pub(crate) extensions: Extensions,
-
-    pub(crate) settings: GlesSettings,
-
-    pub(crate) texture_renderer: RefCell<Option<TextureRenderer<Gles<B>>>>,
-    pub(crate) fake_framebuffer: RefCell<Option<(Rc<GlesTexture<B>>, GlesFrameBuffer<B>)>>,
+    pub gl: glow::Context,
+    pub backend: B,
+    pub state: RefCell<GlesState>,
+    pub default_framebuffer_size: Cell<Option<ImageSize<u32>>>,
+    pub extensions: Extensions,
+    pub settings: GlesSettings,
+    pub screen_flipper: Option<ScreenFlipper>,
 }
 
 impl<B: WindowBackend> Drop for GlesContext<B> {
@@ -133,16 +127,22 @@ impl<B: WindowBackend> Drop for GlesContext<B> {
             state.samplers.drain(&self.gl);
         }
 
-        // This is horrible and temporary
-        self.fake_framebuffer.borrow_mut().take();
-        self.texture_renderer.borrow_mut().take();
+        if let Some(screen_flipper) = &self.screen_flipper {
+            unsafe { screen_flipper.drop_all(&self.gl) };
+        }
     }
 }
 
 impl<B: WindowBackend> GlesContext<B> {
-    pub(crate) unsafe fn new(backend: B, settings: GlesSettings) -> Self {
+    pub unsafe fn new(backend: B, settings: GlesSettings) -> Self {
         let gl = glow::Context::from_loader_function(|s| backend.get_proc_address(s));
-        let texture_unit_limit = gl.get_parameter_i32(glow::MAX_TEXTURE_IMAGE_UNITS) as usize;
+        let mut texture_unit_limit = gl.get_parameter_i32(glow::MAX_TEXTURE_IMAGE_UNITS) as usize;
+
+        // Reserve one texture unit for a fake framebuffer
+        // TODO: check if we can use blitFramebuffer instead of a shader in the final stage
+        if settings.flip_default_framebuffer {
+            texture_unit_limit -= 1;
+        }
 
         gl.pixel_store_i32(glow::PACK_ALIGNMENT, 1);
         gl.pixel_store_i32(glow::UNPACK_ALIGNMENT, 1);
@@ -162,26 +162,38 @@ impl<B: WindowBackend> GlesContext<B> {
                 sampler_objects: extensions.contains("GL_ARB_sampler_objects"),
             },
             settings,
-            texture_renderer: RefCell::new(None),
-            fake_framebuffer: RefCell::new(None),
+            default_framebuffer_size: Cell::new(None),
+            screen_flipper: None,
             gl,
         }
     }
 
-    pub(crate) fn get_ref<'a>(&'a self) -> GlesContextRef<'a> {
+    pub fn default_framebuffer_size(&self) -> ImageSize<u32> {
+        match self.default_framebuffer_size.get() {
+            Some(size) => size,
+            None => {
+                let size = self.backend.default_framebuffer_size();
+                self.default_framebuffer_size.set(Some(size));
+                size
+            }
+        }
+    }
+
+    pub fn get_ref<'a>(&'a self) -> GlesContextRef<'a> {
         GlesContextRef {
             gl: &self.gl,
             state: self.state.borrow_mut(),
-            features: &self.extensions,
+            extensions: &self.extensions,
         }
     }
 }
 
-pub(crate) struct GlesContextRef<'a> {
+
+pub struct GlesContextRef<'a> {
     pub gl: &'a glow::Context,
     pub state: RefMut<'a, GlesState>,
 
-    pub features: &'a Extensions,
+    pub extensions: &'a Extensions,
 }
 
 impl<'a> GlesContextRef<'a> {

@@ -18,7 +18,7 @@ impl<'a> GlesContextRef<'a> {
 }
 
 impl Samplers {
-    pub(crate) fn drain(&mut self, gl: &glow::Context) {
+    pub fn drain(&mut self, gl: &glow::Context) {
         for (_, v) in self.real_cache.drain() {
             unsafe {
                 gl.delete_sampler(v);
@@ -107,7 +107,7 @@ impl<'a> GlesContextRef<'a> {
     }
 
     pub fn bind_sampler(&mut self, unit: u32, state: SamplerState) {
-        if self.features.sampler_objects {
+        if self.extensions.sampler_objects {
             self.bind_sampler_object(unit, state);
         } else {
             self.bind_sampling_data(unit, state);

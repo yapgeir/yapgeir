@@ -12,14 +12,14 @@ use yapgeir_graphics_hal::{
     WindowBackend,
 };
 
-pub(crate) enum GlesDrawDescriptorImpl<B: WindowBackend> {
+pub enum GlesDrawDescriptorImpl<B: WindowBackend> {
     Vao(vao::GlesDrawDescriptor<B>),
     Fallback(fallback::GlesDrawDescriptor<B>),
 }
 
 pub struct GlesDrawDescriptor<B: WindowBackend> {
-    pub(crate) shader: Rc<GlesShader<B>>,
-    pub(crate) index_kind: Option<IndexKind>,
+    pub shader: Rc<GlesShader<B>>,
+    pub index_kind: Option<IndexKind>,
 
     inner: GlesDrawDescriptorImpl<B>,
 }
@@ -54,7 +54,7 @@ impl<B: WindowBackend> DrawDescriptor<Gles<B>> for GlesDrawDescriptor<B> {
 }
 
 impl<B: WindowBackend> GlesDrawDescriptor<B> {
-    pub(crate) fn bind(&self, ctx: &mut GlesContextRef) {
+    pub fn bind(&self, ctx: &mut GlesContextRef) {
         match &self.inner {
             GlesDrawDescriptorImpl::Vao(vao) => vao.bind(ctx),
             GlesDrawDescriptorImpl::Fallback(fallback) => fallback.bind(ctx, &self.shader),
@@ -64,8 +64,8 @@ impl<B: WindowBackend> GlesDrawDescriptor<B> {
 
 #[derive(Default)]
 pub struct DrawDescriptorCache {
-    counter: usize,
-    current: usize,
+    pub counter: usize,
+    pub current: usize,
 }
 
 struct Bindings<'a, B: WindowBackend> {
@@ -180,7 +180,7 @@ mod vao {
             }
         }
 
-        pub(crate) fn bind(&self, ctx: &mut GlesContextRef) {
+        pub fn bind(&self, ctx: &mut GlesContextRef) {
             ctx.bind_vertex_array(Some(self.vao));
         }
     }
@@ -219,7 +219,7 @@ mod fallback {
         ) -> Self {
             let mut ctx = ctx.get_ref();
 
-            // We'll start id's with 1.
+            // Start id's with 1 to keep 0 as uninitialized
             ctx.state.draw_descriptor_cache.counter += 1;
             let id = ctx.state.draw_descriptor_cache.counter;
 
@@ -237,7 +237,7 @@ mod fallback {
             }
         }
 
-        pub(crate) fn bind(&self, ctx: &mut GlesContextRef, shader: &GlesShader<B>) {
+        pub fn bind(&self, ctx: &mut GlesContextRef, shader: &GlesShader<B>) {
             if ctx.state.draw_descriptor_cache.current == self.id {
                 return;
             }

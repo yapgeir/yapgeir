@@ -12,9 +12,8 @@ use yapgeir_graphics_hal::{
     },
     sampler::SamplerState,
     samplers::SamplerAttribute,
-    texture::PixelFormat,
     uniforms::{UniformAttribute, Uniforms},
-    Graphics, ImageSize, Rect, Rgba, WindowBackend,
+    ImageSize, Rect, Rgba, WindowBackend,
 };
 
 use crate::{
@@ -141,7 +140,6 @@ fn to_y_up(rect: &Rect<u32>, size: &ImageSize<u32>) -> Rect<u32> {
 
 enum Resources<B: WindowBackend> {
     Default,
-    FakeDefault,
     Managed {
         size: ImageSize<u32>,
         framebuffer: glow::Framebuffer,
@@ -150,37 +148,22 @@ enum Resources<B: WindowBackend> {
     },
 }
 
-impl GlesContextRef<'_> {
-    fn default_framebuffer_size(&mut self, backend: &impl WindowBackend) -> ImageSize<u32> {
-        match self.state.default_frame_buffer_size {
-            Some(size) => size,
-            None => {
-                let size = backend.default_framebuffer_size();
-                self.state.default_frame_buffer_size = Some(size);
-                size
-            }
-        }
-    }
-}
-
 impl<B: WindowBackend> Resources<B> {
     fn framebuffer(&self, ctx: &GlesContext<B>) -> Option<glow::Framebuffer> {
         match self {
-            Resources::Default => None,
-            Resources::FakeDefault => ctx
-                .fake_framebuffer
-                .borrow()
-                .as_ref()
-                .and_then(|(_, ffb)| ffb.res.framebuffer(&ctx)),
+            Resources::Default => match &ctx.screen_flipper {
+                Some(screen_flipper) => {
+                    Some(unsafe { screen_flipper.framebuffer(&mut ctx.get_ref(), self.size(ctx)) })
+                }
+                None => None,
+            },
             Resources::Managed { framebuffer, .. } => Some(*framebuffer),
         }
     }
 
     fn size<'a>(&self, ctx: &GlesContext<B>) -> ImageSize<u32> {
         match self {
-            Resources::Default | Resources::FakeDefault => {
-                ctx.get_ref().default_framebuffer_size(&ctx.backend)
-            }
+            Resources::Default => ctx.default_framebuffer_size(),
             Resources::Managed { size, .. } => *size,
         }
     }
@@ -191,44 +174,10 @@ pub struct GlesFrameBuffer<B: WindowBackend> {
     res: Resources<B>,
 }
 
-pub(crate) fn real_default_framebuffer<B: WindowBackend>(ctx: Gles<B>) -> GlesFrameBuffer<B> {
-    GlesFrameBuffer {
-        ctx,
-        res: Resources::Default,
-    }
-}
-
 impl<B: WindowBackend + 'static> FrameBuffer<Gles<B>> for GlesFrameBuffer<B> {
     type ReadFormat = GlesReadFormat;
 
     fn default(ctx: Gles<B>) -> Self {
-        if ctx.settings.flip_default_framebuffer {
-            let mut ffb = ctx.fake_framebuffer.borrow_mut();
-            let backend = &ctx.backend;
-
-            let size = ctx.get_ref().default_framebuffer_size(backend);
-
-            if ffb.is_none() || ffb.as_ref().map(|(_, ffb)| ffb.size()) != Some(size) {
-                // Recreate the fake framebuffer
-                let texture = Rc::new(ctx.new_texture(PixelFormat::Rgba, size, None));
-                let depth_stencil = ctx.new_render_buffer(size, RenderBufferFormat::DepthStencil);
-                let new_ffb = GlesFrameBuffer::new(
-                    ctx.clone(),
-                    texture.clone(),
-                    DepthStencilAttachment::DepthStencil(Attachment::RenderBuffer(Rc::new(
-                        depth_stencil,
-                    ))),
-                );
-
-                *ffb = Some((texture, new_ffb))
-            }
-
-            return Self {
-                ctx: ctx.clone(),
-                res: Resources::FakeDefault,
-            };
-        }
-
         Self {
             ctx,
             res: Resources::Default,
@@ -240,29 +189,30 @@ impl<B: WindowBackend + 'static> FrameBuffer<Gles<B>> for GlesFrameBuffer<B> {
         draw_texture: Rc<GlesTexture<B>>,
         depth_stencil: DepthStencilAttachment<Gles<B>>,
     ) -> Self {
-        let gl = &ctx.gl;
         let framebuffer = unsafe {
-            let fb = gl
+            let mut ctx = ctx.get_ref();
+            let fb = ctx
+                .gl
                 .create_framebuffer()
                 .expect("unable to create a framebuffer");
-            gl.bind_framebuffer(glow::FRAMEBUFFER, Some(fb));
+            ctx.bind_frame_buffer(Some(fb));
 
-            attach_texture(gl, &draw_texture, glow::COLOR_ATTACHMENT0);
+            attach_texture(ctx.gl, &draw_texture, glow::COLOR_ATTACHMENT0);
 
             match &depth_stencil {
                 DepthStencilAttachment::None => {}
                 DepthStencilAttachment::Depth(depth) => {
-                    attach(gl, depth, glow::DEPTH_ATTACHMENT);
+                    attach(ctx.gl, depth, glow::DEPTH_ATTACHMENT);
                 }
                 DepthStencilAttachment::Stencil(stencil) => {
-                    attach(gl, stencil, glow::STENCIL_ATTACHMENT);
+                    attach(ctx.gl, stencil, glow::STENCIL_ATTACHMENT);
                 }
                 DepthStencilAttachment::DepthStencil(depth_stencil) => {
-                    attach(gl, depth_stencil, glow::DEPTH_STENCIL_ATTACHMENT);
+                    attach(ctx.gl, depth_stencil, glow::DEPTH_STENCIL_ATTACHMENT);
                 }
                 DepthStencilAttachment::DepthAndStencil { depth, stencil } => {
-                    attach(gl, depth, glow::DEPTH_ATTACHMENT);
-                    attach(gl, stencil, glow::STENCIL_ATTACHMENT);
+                    attach(ctx.gl, depth, glow::DEPTH_ATTACHMENT);
+                    attach(ctx.gl, stencil, glow::STENCIL_ATTACHMENT);
                 }
             }
 
@@ -500,7 +450,7 @@ fn bind_texture<B: WindowBackend>(
             // A sampler can be changed only if its location is not used by another binding for this draw call.
             // This allows binding same texture with different samplers, if sampler objects are supported.
 
-            let can_reuse = !ctx.features.sampler_objects
+            let can_reuse = !ctx.extensions.sampler_objects
                 || !used_units.get(unit).as_deref().cloned().unwrap_or(false);
 
             if can_reuse {

@@ -7,10 +7,10 @@ use yapgeir_graphics_hal::{
 use crate::{constants::GlConstant, Gles};
 
 pub struct GlesBuffer<B: WindowBackend> {
-    pub(crate) ctx: Gles<B>,
-    pub(crate) len: usize,
-    pub(crate) kind: BufferKind,
-    pub(crate) buffer: glow::Buffer,
+    pub ctx: Gles<B>,
+    pub len: usize,
+    pub kind: BufferKind,
+    pub buffer: glow::Buffer,
 }
 
 impl<B: WindowBackend> ByteBuffer<Gles<B>> for GlesBuffer<B> {
