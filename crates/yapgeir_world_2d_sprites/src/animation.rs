@@ -6,12 +6,13 @@ use yapgeir_assets::animations::{Animation, AnimationKind, AnimationSequence};
 use yapgeir_collections::{PersistentSlotMap, Slot};
 use yapgeir_core::Delta;
 use yapgeir_realm::{system, Realm, Res, ResMut};
-
-use yapgeir_reflection::bevy_reflect::{self};
-use yapgeir_reflection::{bevy_reflect::Reflect, RealmExtensions};
 use yapgeir_world_2d::Drawable;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Constructor, Hash, Reflect)]
+#[cfg(feature = "reflection")]
+use yapgeir_reflection::{self, bevy_reflect::Reflect, RealmExtensions};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Constructor, Hash)]
+#[cfg_attr(feature = "reflection", derive(Reflect))]
 pub struct AnimationSequenceKey(u16);
 
 impl From<Slot> for AnimationSequenceKey {
@@ -27,7 +28,8 @@ impl Into<Slot> for AnimationSequenceKey {
 }
 
 // This is they key that should be used to access entities
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Reflect)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "reflection", derive(Reflect))]
 pub struct AnimationKey(AnimationSequenceKey, u8);
 
 #[derive(Default, Debug)]
@@ -68,10 +70,10 @@ impl Index<AnimationKey> for AnimationStorage {
     }
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Reflect)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "reflection", derive(Reflect))]
 pub struct Frame {
     pub index: u8,
-    #[reflect(ignore)]
     reversed: bool,
 }
 
@@ -103,7 +105,8 @@ fn next_frame(animation: &Animation, frame: Frame) -> Frame {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Reflect)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "reflection", derive(Reflect))]
 pub enum FrameState {
     Started,
     Ended,
@@ -111,7 +114,8 @@ pub enum FrameState {
 }
 
 /// A component that will drive drawable change on an entity
-#[derive(Debug, Clone, Reflect)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "reflection", derive(Reflect))]
 pub struct Animator {
     animation: AnimationKey,
     next_sequence: Option<AnimationSequenceKey>,
@@ -217,8 +221,10 @@ fn update(mut world: ResMut<World>, store: Res<AnimationStorage>, delta: Res<Del
 }
 
 pub fn plugin(realm: &mut Realm) {
+    #[cfg(feature = "reflection")]
+    realm.register_type::<Animator>();
+
     realm
-        .register_type::<Animator>()
         .add_resource(AnimationStorage::default())
         .add_system(DrawableAdder::default())
         .add_system(update);

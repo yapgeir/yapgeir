@@ -8,6 +8,7 @@ use yapgeir_world_2d::{
     Dirty, DrawQuad, Drawable, Flip, Static, Transform, TransformPpt, WorldCamera,
 };
 
+#[cfg(feature = "reflection")]
 use yapgeir_reflection::RealmExtensions;
 
 /// Applies transformation matrix to a Drawable, updating a DrawQuad.
@@ -99,9 +100,12 @@ fn update_quads(
 }
 
 pub fn plugin(realm: &mut Realm) {
+    #[cfg(feature = "reflection")]
     realm
         .register_type::<DrawQuad>()
-        .register_type::<Drawable>()
+        .register_type::<Drawable>();
+
+    realm
         .initialize_resource::<WorldCamera>()
         .initialize_resource::<SpritesEntityCache>()
         .add_system(add_draw_quads)

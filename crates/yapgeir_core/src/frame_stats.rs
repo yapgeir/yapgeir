@@ -1,10 +1,12 @@
 use yapgeir_realm::{Realm, Res, ResMut};
-use yapgeir_reflection::bevy_reflect::Reflect;
-use yapgeir_reflection::{bevy_reflect, RealmExtensions};
+
+#[cfg(feature = "reflection")]
+use yapgeir_reflection::{bevy_reflect::{self, Reflect}, RealmExtensions};
 
 use crate::Delta;
 
-#[derive(Default, Reflect)]
+#[derive(Default)]
+#[cfg_attr(feature = "reflection", derive(Reflect))]
 pub struct FrameStats {
     pub frames: u64,
     pub average_fps: f32,
@@ -31,8 +33,10 @@ fn update(mut frame: ResMut<FrameStats>, delta: Res<Delta>) {
 }
 
 pub fn plugin(realm: &mut Realm) {
+    #[cfg(feature = "reflection")]
+    realm.register_type::<FrameStats>();
+
     realm
-        .register_type::<FrameStats>()
         .initialize_resource::<FrameStats>()
         .add_system(update);
 }
