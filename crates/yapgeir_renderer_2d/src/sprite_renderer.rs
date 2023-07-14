@@ -187,6 +187,9 @@ pub enum TextureRegion {
     /// Rectangle in pixels with (0; 0) representing top-left coordinate
     Pixels(Rect<u32>),
 
+    #[deprecated = "use TexelsRect instead"]
+    Texels(Rect<f32>),
+
     /// Rectangle in texture space with (0; 0) representing top-left corner,
     /// and (1; 1) representing bottom right corner.
     ///
@@ -208,6 +211,8 @@ impl TextureRegion {
         match self {
             TextureRegion::Full => Rect::new(0.0, 0.0, 1.0, 1.0).points(),
             TextureRegion::TexelsBox2D(box2d) => box2d.points(),
+            #[allow(deprecated)]
+            TextureRegion::Texels(rect) => rect.points(),
             TextureRegion::TexelsRect(rect) => rect.points(),
             TextureRegion::Pixels(rect) => Rect::new(
                 rect.x as f32 / texture_size.w as f32,
@@ -223,6 +228,11 @@ impl TextureRegion {
         match self {
             TextureRegion::Full => texture_size,
             TextureRegion::Pixels(rect) => rect.size(),
+            #[allow(deprecated)]
+            TextureRegion::Texels(rect) => Size::new(
+                (rect.w * texture_size.w as f32) as u32,
+                (rect.h * texture_size.h as f32) as u32,
+            ),
             TextureRegion::TexelsRect(rect) => Size::new(
                 (rect.w * texture_size.w as f32) as u32,
                 (rect.h * texture_size.h as f32) as u32,

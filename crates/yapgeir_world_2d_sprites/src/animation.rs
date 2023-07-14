@@ -9,7 +9,7 @@ use yapgeir_realm::{system, Realm, Res, ResMut};
 use yapgeir_world_2d::Drawable;
 
 #[cfg(feature = "reflection")]
-use yapgeir_reflection::{self, bevy_reflect::Reflect, RealmExtensions};
+use yapgeir_reflection::{bevy_reflect::{self, Reflect}, RealmExtensions};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Constructor, Hash)]
 #[cfg_attr(feature = "reflection", derive(Reflect))]

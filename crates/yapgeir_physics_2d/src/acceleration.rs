@@ -5,21 +5,29 @@ use nalgebra::Vector2;
 use yapgeir_core::Delta;
 use yapgeir_realm::{Realm, Res, ResMut};
 
-use yapgeir_reflection::bevy_reflect::Reflect;
-use yapgeir_reflection::bevy_reflect::{self};
+#[cfg(feature = "reflection")]
+use yapgeir_reflection::{
+    bevy_reflect::{self, Reflect},
+    RealmExtensions,
+};
+
+#[cfg(not(feature = "reflection"))]
+use yapgeir_core::__reflection_stubs::Reflect;
 
 use super::{
     rapier::{Rapier, RigidBody},
     simple::KinematicBody,
 };
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Reflect)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[cfg_attr(feature = "reflection", derive(Reflect))]
 pub enum DirectionX {
     Left,
     Right,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Reflect)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[cfg_attr(feature = "reflection", derive(Reflect))]
 pub enum DirectionY {
     Down,
     Up,
@@ -52,10 +60,12 @@ impl Directed for DirectionY {
     }
 }
 
-#[derive(Debug, Default, Reflect)]
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "reflection", derive(Reflect))]
 pub struct X;
 
-#[derive(Debug, Default, Reflect)]
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "reflection", derive(Reflect))]
 pub struct Y;
 
 pub trait Axis {
@@ -79,12 +89,13 @@ impl Axis for Y {
 
 // Usually velocity changes in games have some tweening in them.
 // Axial acceleration is a sensible way of describing them
-#[derive(Debug, Default, Reflect)]
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "reflection", derive(Reflect))]
 pub struct Acceleration<A: Axis + Reflect> {
     pub acceleration: f32,
     pub limit: f32,
 
-    #[reflect(ignore)]
+    #[cfg_attr(feature = "reflection", reflect(ignore))]
     _axis: PhantomData<A>,
 }
 
@@ -147,6 +158,11 @@ fn update_axis<A: Axis + Reflect + Debug + Send + Sync + 'static>(
 }
 
 pub fn plugin(realm: &mut Realm) {
+    #[cfg(feature = "reflection")]
+    realm
+        .register_type::<Acceleration<X>>()
+        .register_type::<Acceleration<Y>>();
+
     realm
         .add_system(update_axis::<X>)
         .add_system(update_axis::<Y>);

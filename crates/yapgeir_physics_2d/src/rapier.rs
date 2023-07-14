@@ -10,14 +10,19 @@ use yapgeir_core::Delta;
 use yapgeir_realm::{Plugin, Realm, Res, ResMut};
 use yapgeir_world_2d::Transform;
 
-use yapgeir_reflection::bevy_reflect::Reflect;
-use yapgeir_reflection::{bevy_reflect, RealmExtensions};
+#[cfg(feature = "reflection")]
+use yapgeir_reflection::{
+    bevy_reflect::{self, Reflect},
+    RealmExtensions,
+};
 
-#[derive(Deref, DerefMut, Constructor, Clone, Copy, Reflect)]
-pub struct RigidBody(#[reflect(ignore)] RigidBodyHandle);
+#[derive(Deref, DerefMut, Constructor, Clone, Copy)]
+#[cfg_attr(feature = "reflection", derive(Reflect))]
+pub struct RigidBody(#[cfg_attr(feature = "reflection", reflect(ignore))] RigidBodyHandle);
 
-#[derive(Deref, DerefMut, Constructor, Clone, Copy, Reflect)]
-pub struct Collider(#[reflect(ignore)] ColliderHandle);
+#[derive(Deref, DerefMut, Constructor, Clone, Copy)]
+#[cfg_attr(feature = "reflection", derive(Reflect))]
+pub struct Collider(#[cfg_attr(feature = "reflection", reflect(ignore))] ColliderHandle);
 
 #[derive(Default)]
 pub struct Rapier {
@@ -106,9 +111,12 @@ pub struct PhysicsSettings {
 
 pub fn plugin(settings: PhysicsSettings) -> impl Plugin {
     move |realm: &mut Realm| {
+        #[cfg(feature = "reflection")]
         realm
             .register_type::<RigidBody>()
-            .register_type::<Collider>()
+            .register_type::<Collider>();
+
+        realm
             .add_resource(Rapier::new(settings.gravity))
             .add_system(update);
     }

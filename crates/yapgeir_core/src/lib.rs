@@ -6,6 +6,13 @@ use smart_default::SmartDefault;
 #[cfg(feature = "reflection")]
 use yapgeir_reflection::bevy_reflect::{self, Reflect};
 
+/// An internal hack used to put reflection under a feature toggle.
+/// Use these stubs when you need to provide trait bounds of Reflect trait,
+/// but want to make reflection conditional under a feature flag, disabling yapgeir_reflection
+/// dependency all together.
+pub mod __reflection_stubs;
+
+
 pub mod frame_stats;
 
 /// A resource that holds time that passed since the previous frame in seconds.
@@ -31,7 +38,6 @@ pub struct WindowSize {
     pub h: u32,
 }
 
-
 /// A component that can be used for debugging your entities. A name is either an owned string,
 /// or a reference with a 'static lifetime.
 #[derive(Debug, Clone, PartialEq, Eq, Deref)]
@@ -42,5 +48,5 @@ pub struct Named(pub Cow<'static, str>);
 impl Named {
     pub fn new(name: impl Into<Cow<'static, str>>) -> Self {
         Self(name.into())
-    }    
+    }
 }
