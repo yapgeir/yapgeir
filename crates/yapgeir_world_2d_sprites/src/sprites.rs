@@ -103,7 +103,9 @@ pub fn plugin(realm: &mut Realm) {
     #[cfg(feature = "reflection")]
     realm
         .register_type::<DrawQuad>()
-        .register_type::<Drawable>();
+        .register_type::<Drawable>()
+        .register_type::<Static>()
+        .register_type::<Dirty>();
 
     realm
         .initialize_resource::<WorldCamera>()
