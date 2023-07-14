@@ -210,7 +210,7 @@ fn render<G: Graphics>(
     texture: Res<G::Texture>,
     world: Res<World>,
 ) {
-    let fb = graphics.default_framebuffer();
+    let fb = graphics.default_frame_buffer();
     fb.clear(
         None,
         Some(yapgeir_graphics_hal::Rgba::new(0., 0., 0., 1.)),

@@ -4,7 +4,7 @@ use derive_more::Constructor;
 use yapgeir_reflection::bevy_reflect::{self, Reflect};
 
 /// A rectangle defined as an origin point and a size.
-#[derive(Constructor, Default, Debug, Clone, PartialEq, Eq, Reflect)]
+#[derive(Constructor, Default, Debug, Clone, Copy, PartialEq, Eq, Reflect)]
 pub struct Rect<T> {
     pub x: T,
     pub y: T,
@@ -27,7 +27,7 @@ impl<T> Rect<T> {
 }
 
 /// A representation of a rectangle by two points of a diagonal.
-#[derive(Constructor, Default, Debug, Clone, PartialEq, Eq, Reflect)]
+#[derive(Constructor, Default, Debug, Clone, Copy, PartialEq, Eq, Reflect)]
 pub struct Box2D<T> {
     pub min: [T; 2],
     pub max: [T; 2],

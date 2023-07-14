@@ -172,7 +172,7 @@ impl<B: WindowBackend> GlesContext<B> {
         match self.default_framebuffer_size.get() {
             Some(size) => size,
             None => {
-                let size = self.backend.default_framebuffer_size();
+                let size = self.backend.default_frame_buffer_size();
                 self.default_framebuffer_size.set(Some(size));
                 size
             }

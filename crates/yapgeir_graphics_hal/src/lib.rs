@@ -29,9 +29,16 @@ pub trait WindowBackend
 where
     Self: 'static,
 {
+    /// swap_buffers is called when a frame finishes rendering and should be displayed
+    /// on screen.
     fn swap_buffers(&self);
+
     fn get_proc_address(&self, symbol: &str) -> *const c_void;
-    fn default_framebuffer_size(&self) -> ImageSize<u32>;
+
+    /// Returns the size of the current frame buffer in pixels.
+    /// This method is called by Graphics every frame to ensure
+    /// correct work when window size is changed.
+    fn default_frame_buffer_size(&self) -> ImageSize<u32>;
 }
 
 pub trait Graphics
@@ -53,7 +60,12 @@ where
 
     fn new(backend: Self::Backend) -> Self;
 
+    #[deprecated = "Use .default_frame_buffer() instead"]
     fn default_framebuffer(&self) -> Self::FrameBuffer {
+        self.default_frame_buffer()
+    }
+
+    fn default_frame_buffer(&self) -> Self::FrameBuffer {
         Self::FrameBuffer::default(self.clone())
     }
 

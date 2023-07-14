@@ -97,7 +97,7 @@ pub enum CullFaceMode {
     All,
 }
 
-#[derive(Default, Clone, Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub struct PolygonOffset {
     pub factor: f32,
     pub units: f32,

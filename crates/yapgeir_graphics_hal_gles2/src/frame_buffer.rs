@@ -290,6 +290,16 @@ impl<B: WindowBackend + 'static> FrameBuffer<Gles<B>> for GlesFrameBuffer<B> {
         );
     }
 
+    fn blit(
+        &self,
+        _read_frame_buffer: &<Gles<B> as yapgeir_graphics_hal::Graphics>::FrameBuffer,
+        _source: Rect<u32>,
+        _destination: Rect<u32>,
+        _filter: yapgeir_graphics_hal::sampler::Filter,
+    ) {
+        unimplemented!("Not there yet")
+    }
+
     fn read(&self, rect: Rect<u32>, format: GlesReadFormat, target: &mut [u8]) {
         let fb = self.res.framebuffer(&self.ctx);
 
@@ -310,6 +320,7 @@ impl<B: WindowBackend + 'static> FrameBuffer<Gles<B>> for GlesFrameBuffer<B> {
             );
         }
     }
+
 }
 
 fn draw_impl<'a, B: WindowBackend>(
@@ -388,14 +399,14 @@ fn set_draw_parameters<'a>(
     let viewport = viewport.unwrap_or_else(|| framebuffer_size.into());
 
     ctx.set_blend(draw_parameters.blend.clone());
-    ctx.set_color_mask(draw_parameters.color_mask.clone());
+    ctx.set_color_mask(draw_parameters.color_mask);
     ctx.set_cull_face(draw_parameters.cull_face);
     ctx.set_depth(draw_parameters.depth.clone());
     ctx.set_stencil(draw_parameters.stencil.clone());
     ctx.set_scissor(scissor);
     ctx.set_viewport(viewport);
     ctx.set_line_width(draw_parameters.line_width);
-    ctx.set_polygon_offset(draw_parameters.polygon_offset.clone());
+    ctx.set_polygon_offset(draw_parameters.polygon_offset);
     ctx.set_dithering(draw_parameters.dithering);
 }
 

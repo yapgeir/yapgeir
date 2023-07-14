@@ -260,7 +260,7 @@ impl<G: Graphics> EguiPainter<G> {
         let ImageSize {
             w: width_in_pixels,
             h: height_in_pixels,
-        } = self.resources.ctx.default_framebuffer().size();
+        } = self.resources.ctx.default_frame_buffer().size();
 
         let width_in_points = width_in_pixels as f32 / pixels_per_point;
         let height_in_points = height_in_pixels as f32 / pixels_per_point;

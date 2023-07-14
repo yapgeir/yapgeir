@@ -14,7 +14,7 @@ mod sprite_sheet;
 /// Defines the logical size of the sprite,
 /// the corresponding rectangle on a texture and a crop rectangle
 /// for sprites that had transparent parts removed from the atlas.
-#[derive(Debug, Clone, Default, Reflect)]
+#[derive(Debug, Clone, Copy, Default, Reflect)]
 pub struct Drawable {
     /// The logical size of the sprite.
     /// If you have drawn a 32x32 sprite, and an atlas has a cropped version of it,
@@ -28,7 +28,7 @@ pub struct Drawable {
 }
 
 /// The actual
-#[derive(Debug, Clone, Default, Reflect)]
+#[derive(Debug, Clone, Copy, Default, Reflect)]
 pub struct Sprite {
     /// This is the clip rectangle in centered pixel coordinates.
     /// A rectangle from [-5, -5] to [5, 5] would map the sub-texture to a

@@ -9,7 +9,7 @@ use crate::{
     primitives::{Rect, Rgba},
     samplers::SamplerAttribute,
     uniforms::Uniforms,
-    Graphics, ImageSize,
+    Graphics, ImageSize, sampler::Filter,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -68,24 +68,24 @@ pub trait FrameBuffer<G: Graphics> {
     /// Alpha, Rgb and Rgba with 8 bits per component.
     type ReadFormat;
 
-    /// Return the default framebuffer, which is bound to a screen.
+    /// Return the default frame buffer, which is bound to a screen.
     fn default(renderer: G) -> Self;
 
-    /// Create a new framebuffer.
+    /// Create a new frame buffer.
     ///
-    /// A framebuffer uses a Texture for a depth component,
+    /// A frame buffer uses a Texture for a depth component,
     /// and can optionally have depth and/or stencil components.
     ///
     /// Depth and stencil components can be a texture or a renderbuffer.
     fn new(renderer: G, draw: Rc<G::Texture>, depth_stencil: DepthStencilAttachment<G>) -> Self;
 
-    /// Returns the size of the framebuffer in pixels.
+    /// Returns the size of the frame buffer in pixels.
     fn size(&self) -> ImageSize<u32>;
 
     /// Reset values in the underlying draw depth and stencil buffers
     /// that are covered by a scissor rectangle to a constant value.
     ///
-    /// If `scissor` is `None`, uses the clear the whole framebuffer.
+    /// If `scissor` is `None`, uses the clear the whole frame buffer.
     /// Note that `scissor` is in Y-down coordinate space regardless of
     /// the implementation, meaning that a (0, 0) point is in the left
     /// top corner.
@@ -100,7 +100,7 @@ pub trait FrameBuffer<G: Graphics> {
         stencil: Option<u8>,
     );
 
-    /// Draws the vertices on the framebuffer.
+    /// Draws the vertices on the frame buffer.
     ///
     /// # Arguments
     ///
@@ -127,7 +127,24 @@ pub trait FrameBuffer<G: Graphics> {
         indices: &Indices,
     );
 
-    /// Reads the data from the framebuffers draw texture to the provided
+    /// Draws a rectangle of another frame buffers draw attachment in a rectangle
+    /// of this frame buffers draw attachment.
+    ///
+    /// # Arguments
+    /// 
+    /// * `read_frame_buffer` - a frame buffer which draw texture will be copied.
+    /// * `source` - specifies the bounds of the source rectangle within the `read_frame_buffer`.
+    /// * `destination` - specifies the bounds of the destination rectangle within thr target frame buffer.
+    /// * ``
+    fn blit(
+        &self,
+        read_frame_buffer: &G::FrameBuffer,
+        source: Rect<u32>,
+        destination: Rect<u32>,
+        filter: Filter,
+    );
+
+    /// Reads the data from the frame buffers draw texture to the provided
     /// byte slice.
     fn read(&self, rect: Rect<u32>, read_format: Self::ReadFormat, target: &mut [u8]);
 }

@@ -76,7 +76,7 @@ impl<T> From<Rgba<T>> for [T; 4] {
     }
 }
 
-#[derive(Constructor, Default, Clone, Debug, PartialEq, Eq)]
+#[derive(Constructor, Default, Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Rect<T> {
     pub x: T,
     pub y: T,
