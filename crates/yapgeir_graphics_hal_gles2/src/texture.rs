@@ -1,7 +1,7 @@
 use glow::{HasContext, PixelUnpackData};
 use yapgeir_graphics_hal::{
     texture::{PixelFormat, Texture},
-    ImageSize, Rect, WindowBackend,
+    Size, Rect, WindowBackend,
 };
 
 use crate::{constants::GlConstant, Gles};
@@ -74,7 +74,7 @@ impl GlesPixelFormat {
 pub struct GlesTexture<B: WindowBackend> {
     ctx: Gles<B>,
     format: GlesPixelFormat,
-    pub size: ImageSize<u32>,
+    pub size: Size<u32>,
     pub texture: glow::Texture,
 }
 
@@ -84,7 +84,7 @@ impl<B: WindowBackend> Texture<Gles<B>> for GlesTexture<B> {
     fn new(
         ctx: Gles<B>,
         format: Self::PixelFormat,
-        size: ImageSize<u32>,
+        size: Size<u32>,
         bytes: Option<&[u8]>,
     ) -> Self {
         if let Some(bytes) = bytes {
@@ -121,7 +121,7 @@ impl<B: WindowBackend> Texture<Gles<B>> for GlesTexture<B> {
         }
     }
 
-    fn size(&self) -> ImageSize<u32> {
+    fn size(&self) -> Size<u32> {
         self.size
     }
 
@@ -129,13 +129,13 @@ impl<B: WindowBackend> Texture<Gles<B>> for GlesTexture<B> {
         &self,
         mipmap_level: u32,
         format: Self::PixelFormat,
-        size: ImageSize<u32>,
+        size: Size<u32>,
         bytes: &[u8],
     ) {
         let stride = format.stride();
         let (format, ty) = format.gl();
         assert_eq!(format, self.format.gl().0, "format must not change");
-        assert_eq!(bytes.len(), (size.w * size.h) as usize * stride);
+        assert_eq!(bytes.len(), size.w.saturating_mul(size.h) as usize * stride);
 
         self.ctx.get_ref().activate_texture(self.texture);
         unsafe {

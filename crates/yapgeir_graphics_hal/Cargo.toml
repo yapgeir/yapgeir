@@ -5,6 +5,7 @@ edition = "2021"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
+yapgeir_geometry = { path = "../yapgeir_geometry" }
 yapgeir_graphics_hal_macro = { path = "./macro" }
 
 derive_more.workspace = true

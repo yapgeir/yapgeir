@@ -17,7 +17,7 @@ use yapgeir_graphics_hal::{
     texture::{PixelFormat, Texture},
     uniforms::{UniformBuffer, Uniforms},
     vertex_buffer::{AttributeKind, VectorSize, VertexAttribute},
-    Graphics, ImageSize, Rect,
+    Graphics, Rect, Size,
 };
 
 #[derive(Default)]
@@ -257,7 +257,7 @@ impl<G: Graphics> EguiPainter<G> {
         self.resources.write_indices(&mesh.indices);
         self.resources.write_vertices(&mesh.vertices);
 
-        let ImageSize {
+        let Size {
             w: width_in_pixels,
             h: height_in_pixels,
         } = self.resources.ctx.default_frame_buffer().size();
@@ -344,7 +344,7 @@ impl<G: Graphics> EguiPainter<G> {
         } else {
             let texture = self.resources.ctx.new_texture(
                 PixelFormat::Rgba,
-                ImageSize::new(delta.image.width() as u32, delta.image.height() as u32),
+                Size::new(delta.image.width() as u32, delta.image.height() as u32),
                 Some(pixels),
             );
 

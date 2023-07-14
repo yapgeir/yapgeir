@@ -1,6 +1,6 @@
 use smart_default::SmartDefault;
 
-use crate::primitives::{Rect, Rgba};
+use crate::{Rect, Rgba};
 
 #[derive(Default, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BlendingEquation {

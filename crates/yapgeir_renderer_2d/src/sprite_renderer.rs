@@ -1,6 +1,6 @@
 use bytemuck::{Pod, Zeroable};
 use std::rc::Rc;
-use yapgeir_geometry::Rect;
+use yapgeir_geometry::{Box2D, Rect};
 use yapgeir_graphics_hal::{
     draw_params::Blend,
     draw_params::{
@@ -14,7 +14,7 @@ use yapgeir_graphics_hal::{
     texture::Texture,
     uniforms::Uniforms,
     vertex_buffer::Vertex,
-    Graphics, ImageSize,
+    Graphics, Size,
 };
 
 use crate::{
@@ -159,11 +159,7 @@ pub enum DrawRegion {
 
 impl DrawRegion {
     /// Calculate a quad in world-space coordinates.
-    pub fn quad(
-        self,
-        texture_region: &TextureRegion,
-        texture_size: ImageSize<u32>,
-    ) -> [[f32; 2]; 4] {
+    pub fn quad(self, texture_region: &TextureRegion, texture_size: Size<u32>) -> [[f32; 2]; 4] {
         match self {
             DrawRegion::Point(point) => {
                 // Here we calculate the quad assuming that the center of it is our point,
@@ -193,31 +189,51 @@ pub enum TextureRegion {
 
     /// Rectangle in texture space with (0; 0) representing top-left corner,
     /// and (1; 1) representing bottom right corner.
-    Texels(Rect<f32>),
+    ///
+    /// A Rect is used for convenience. Internally to convert it to points,
+    /// some mathematical operations are required making it less efficient than
+    /// a Box2D.
+    TexelsRect(Rect<f32>),
+
+    /// Rectangle in texture space with (0; 0) representing top-left corner,
+    /// and (1; 1) representing bottom right corner.
+    ///
+    /// Box2D requires no math for conversion to points, so this is the most
+    /// efficient way to do draw calls.
+    TexelsBox2D(Box2D<f32>),
 }
 
 impl TextureRegion {
-    pub fn in_texture_space(&self, texture_size: ImageSize<u32>) -> Rect<f32> {
+    pub fn to_texel_quad(&self, texture_size: Size<u32>) -> [[f32; 2]; 4] {
         match self {
-            TextureRegion::Full => Rect::new(0.0, 0.0, 1.0, 1.0),
-            TextureRegion::Texels(rect) => rect.clone(),
+            TextureRegion::Full => Rect::new(0.0, 0.0, 1.0, 1.0).points(),
+            TextureRegion::TexelsBox2D(box2d) => box2d.points(),
+            TextureRegion::TexelsRect(rect) => rect.points(),
             TextureRegion::Pixels(rect) => Rect::new(
                 rect.x as f32 / texture_size.w as f32,
                 rect.y as f32 / texture_size.h as f32,
                 rect.w as f32 / texture_size.w as f32,
                 rect.h as f32 / texture_size.h as f32,
-            ),
+            )
+            .points(),
         }
     }
 
-    pub fn pixel_size(&self, texture_size: ImageSize<u32>) -> ImageSize<u32> {
+    pub fn pixel_size(&self, texture_size: Size<u32>) -> Size<u32> {
         match self {
             TextureRegion::Full => texture_size,
-            TextureRegion::Texels(rect) => ImageSize::new(
+            TextureRegion::Pixels(rect) => rect.size(),
+            TextureRegion::TexelsRect(rect) => Size::new(
                 (rect.w * texture_size.w as f32) as u32,
                 (rect.h * texture_size.h as f32) as u32,
             ),
-            TextureRegion::Pixels(rect) => (rect.w, rect.h).into(),
+            TextureRegion::TexelsBox2D(box2d) => {
+                let size = box2d.size();
+                Size::new(
+                    (size.w * texture_size.w as f32) as u32,
+                    (size.h * texture_size.h as f32) as u32,
+                )
+            }
         }
     }
 }
@@ -228,9 +244,7 @@ where
 {
     pub fn draw_sprite(&mut self, sprite: DrawRegion, texture_region: TextureRegion, depth: u16) {
         let quad = sprite.quad(&texture_region, self.texture.size());
-        let texture_region = texture_region
-            .in_texture_space(self.texture.size())
-            .points();
+        let texture_region = texture_region.to_texel_quad(self.texture.size());
 
         let depth = (depth as f32 - 32768.) / u16::MAX as f32;
 

@@ -10,14 +10,13 @@ use shader::{Shader, TextShaderSource};
 use texture::{PixelFormat, Texture};
 use uniforms::{UniformBuffer, Uniforms};
 
-pub use primitives::*;
+pub use yapgeir_geometry::*;
 
 pub mod buffer;
 pub mod draw_descriptor;
 pub mod draw_params;
 pub mod frame_buffer;
 pub mod index_buffer;
-mod primitives;
 pub mod sampler;
 pub mod samplers;
 pub mod shader;
@@ -38,7 +37,7 @@ where
     /// Returns the size of the current frame buffer in pixels.
     /// This method is called by Graphics every frame to ensure
     /// correct work when window size is changed.
-    fn default_frame_buffer_size(&self) -> ImageSize<u32>;
+    fn default_frame_buffer_size(&self) -> Size<u32>;
 }
 
 pub trait Graphics
@@ -100,7 +99,7 @@ where
     fn new_texture<'a>(
         &self,
         format: impl Into<Self::PixelFormat>,
-        size: impl Into<ImageSize<u32>>,
+        size: impl Into<Size<u32>>,
         bytes: Option<&'a [u8]>,
     ) -> Self::Texture {
         Self::Texture::new(self.clone(), format.into(), size.into(), bytes.into())
@@ -108,7 +107,7 @@ where
 
     fn new_render_buffer(
         &self,
-        size: impl Into<ImageSize<u32>>,
+        size: impl Into<Size<u32>>,
         format: impl Into<Self::RenderBufferFormat>,
     ) -> Self::RenderBuffer {
         Self::RenderBuffer::new(self.clone(), size.into(), format.into())

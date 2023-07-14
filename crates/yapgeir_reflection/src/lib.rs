@@ -1,23 +1,7 @@
-use std::borrow::Cow;
-
-use bevy_reflect::{GetTypeRegistration, Reflect, TypeRegistry};
-use derive_more::Deref;
+use bevy_reflect::{GetTypeRegistration, TypeRegistry};
 use yapgeir_realm::{Realm, Resources};
 
 pub use bevy_reflect;
-
-#[derive(Debug, Clone, PartialEq, Eq, Reflect, Deref)]
-#[deref(forward)]
-pub struct Named(Cow<'static, str>);
-
-impl<T> From<T> for Named
-where
-    T: Into<Cow<'static, str>>,
-{
-    fn from(value: T) -> Self {
-        Named(value.into())
-    }
-}
 
 pub trait RealmExtensions {
     fn register_type<T: GetTypeRegistration>(&mut self) -> &mut Self;

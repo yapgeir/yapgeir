@@ -1,6 +1,6 @@
 use std::{ffi::c_void, rc::Rc};
 
-use yapgeir_graphics_hal::{Graphics, ImageSize, WindowBackend};
+use yapgeir_graphics_hal::{Graphics, Size, WindowBackend};
 use yapgeir_realm::{Realm, Res};
 use yapgeir_sdl::sdl2::{self, video::SwapInterval};
 
@@ -15,7 +15,7 @@ impl WindowBackend for SdlWindowBackend {
         self.0.subsystem().gl_get_proc_address(symbol) as *const c_void
     }
 
-    fn default_frame_buffer_size(&self) -> ImageSize<u32> {
+    fn default_frame_buffer_size(&self) -> Size<u32> {
         self.0.drawable_size().into()
     }
 }

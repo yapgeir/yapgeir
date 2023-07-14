@@ -8,7 +8,7 @@ use yapgeir_graphics_hal::{
     buffer::BufferKind,
     draw_params::{Blend, CullFaceMode, Depth, PolygonOffset, Stencil, StencilCheck},
     sampler::SamplerState,
-    ImageSize, Rect, Rgba, WindowBackend,
+    Size, Rect, Rgba, WindowBackend,
 };
 
 use crate::{
@@ -110,7 +110,7 @@ pub struct GlesContext<B: WindowBackend> {
     pub gl: glow::Context,
     pub backend: B,
     pub state: RefCell<GlesState>,
-    pub default_framebuffer_size: Cell<Option<ImageSize<u32>>>,
+    pub default_framebuffer_size: Cell<Option<Size<u32>>>,
     pub extensions: Extensions,
     pub settings: GlesSettings,
     pub screen_flipper: Option<ScreenFlipper>,
@@ -168,7 +168,7 @@ impl<B: WindowBackend> GlesContext<B> {
         }
     }
 
-    pub fn default_framebuffer_size(&self) -> ImageSize<u32> {
+    pub fn default_framebuffer_size(&self) -> Size<u32> {
         match self.default_framebuffer_size.get() {
             Some(size) => size,
             None => {

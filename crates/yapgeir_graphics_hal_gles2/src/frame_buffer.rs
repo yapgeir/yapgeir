@@ -13,7 +13,7 @@ use yapgeir_graphics_hal::{
     sampler::SamplerState,
     samplers::SamplerAttribute,
     uniforms::{UniformAttribute, Uniforms},
-    ImageSize, Rect, Rgba, WindowBackend,
+    Size, Rect, Rgba, WindowBackend,
 };
 
 use crate::{
@@ -61,7 +61,7 @@ pub struct GlesRenderBuffer<B: WindowBackend> {
 impl<B: WindowBackend> RenderBuffer<Gles<B>> for GlesRenderBuffer<B> {
     type Format = RenderBufferFormat;
 
-    fn new(ctx: Gles<B>, size: ImageSize<u32>, format: RenderBufferFormat) -> Self {
+    fn new(ctx: Gles<B>, size: Size<u32>, format: RenderBufferFormat) -> Self {
         let format = format.gl_const();
 
         let renderbuffer = unsafe {
@@ -134,14 +134,14 @@ unsafe fn attach<B: WindowBackend>(
 // OpenGL uses Y-up coordinate system for everything.
 // This function is used to convert scissor and viewport rectangles from
 // y-down coordinates.
-fn to_y_up(rect: &Rect<u32>, size: &ImageSize<u32>) -> Rect<u32> {
+fn to_y_up(rect: &Rect<u32>, size: &Size<u32>) -> Rect<u32> {
     Rect::new(rect.x, size.h - rect.y - rect.h, rect.w, rect.h)
 }
 
 enum Resources<B: WindowBackend> {
     Default,
     Managed {
-        size: ImageSize<u32>,
+        size: Size<u32>,
         framebuffer: glow::Framebuffer,
         _draw_texture: Rc<GlesTexture<B>>,
         _depth_stencil: DepthStencilAttachment<Gles<B>>,
@@ -161,7 +161,7 @@ impl<B: WindowBackend> Resources<B> {
         }
     }
 
-    fn size<'a>(&self, ctx: &GlesContext<B>) -> ImageSize<u32> {
+    fn size<'a>(&self, ctx: &GlesContext<B>) -> Size<u32> {
         match self {
             Resources::Default => ctx.default_framebuffer_size(),
             Resources::Managed { size, .. } => *size,
@@ -230,7 +230,7 @@ impl<B: WindowBackend + 'static> FrameBuffer<Gles<B>> for GlesFrameBuffer<B> {
         }
     }
 
-    fn size(&self) -> ImageSize<u32> {
+    fn size(&self) -> Size<u32> {
         self.res.size(&self.ctx)
     }
 
@@ -328,7 +328,7 @@ fn draw_impl<'a, B: WindowBackend>(
     frame_buffer: Option<glow::Framebuffer>,
     draw_descriptor: &GlesDrawDescriptor<B>,
     draw_parameters: &DrawParameters,
-    size: ImageSize<u32>,
+    size: Size<u32>,
     indices: &Indices,
     flip_default_framebuffer: bool,
 ) {
@@ -375,7 +375,7 @@ impl<B: WindowBackend> Drop for GlesFrameBuffer<B> {
 fn set_draw_parameters<'a>(
     ctx: &mut GlesContextRef<'a>,
     draw_parameters: &DrawParameters,
-    framebuffer_size: ImageSize<u32>,
+    framebuffer_size: Size<u32>,
     flip_default_framebuffer: bool,
 ) {
     let (scissor, viewport) = if flip_default_framebuffer {

@@ -6,7 +6,7 @@ use yapgeir_graphics_hal::{
     frame_buffer::RenderBufferFormat,
     index_buffer::PrimitiveMode,
     shader::TextShaderSource,
-    ImageSize, Rgba,
+    Size, Rgba,
 };
 
 use crate::{constants::GlConstant, context::GlesContextRef, shader::compile_program};
@@ -64,7 +64,7 @@ pub struct FakeFramebuffer {
 }
 
 impl FakeFramebuffer {
-    pub unsafe fn new(ctx: &mut GlesContextRef, size: ImageSize<u32>) -> Self {
+    pub unsafe fn new(ctx: &mut GlesContextRef, size: Size<u32>) -> Self {
         // Create a new draw texture
         let draw_texture = ctx.gl.create_texture().expect("unable to create a texture");
         ctx.activate_texture_unit(ctx.state.texture_unit_limit as u32);
@@ -152,7 +152,7 @@ impl FakeFramebuffer {
 }
 
 pub struct ScreenFlipper {
-    pub size: Cell<ImageSize<u32>>,
+    pub size: Cell<Size<u32>>,
 
     pub framebuffer: RefCell<FakeFramebuffer>,
     pub vertex_buffer: glow::Buffer,
@@ -162,7 +162,7 @@ pub struct ScreenFlipper {
 }
 
 impl ScreenFlipper {
-    pub unsafe fn new(ctx: &mut GlesContextRef, size: ImageSize<u32>) -> Self {
+    pub unsafe fn new(ctx: &mut GlesContextRef, size: Size<u32>) -> Self {
         let framebuffer = FakeFramebuffer::new(ctx, size);
 
         let vertex_buffer = ctx.gl.create_buffer().expect("Unable to create buffer.");
@@ -200,7 +200,7 @@ impl ScreenFlipper {
     pub unsafe fn framebuffer(
         &self,
         ctx: &mut GlesContextRef,
-        size: ImageSize<u32>,
+        size: Size<u32>,
     ) -> glow::Framebuffer {
         let mut fb = self.framebuffer.borrow_mut();
         if size != self.size.get() {

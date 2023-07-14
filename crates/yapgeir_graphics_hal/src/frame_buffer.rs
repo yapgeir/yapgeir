@@ -4,12 +4,8 @@ use bytemuck::Pod;
 use derive_more::Constructor;
 
 use crate::{
-    draw_params::DrawParameters,
-    index_buffer::PrimitiveMode,
-    primitives::{Rect, Rgba},
-    samplers::SamplerAttribute,
-    uniforms::Uniforms,
-    Graphics, ImageSize, sampler::Filter,
+    draw_params::DrawParameters, index_buffer::PrimitiveMode, sampler::Filter,
+    samplers::SamplerAttribute, uniforms::Uniforms, Graphics, Size, Rect, Rgba,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -22,7 +18,7 @@ pub enum RenderBufferFormat {
 pub trait RenderBuffer<G: Graphics> {
     type Format;
 
-    fn new(renderer: G, size: ImageSize<u32>, format: Self::Format) -> Self;
+    fn new(renderer: G, size: Size<u32>, format: Self::Format) -> Self;
 }
 
 pub enum Attachment<G: Graphics> {
@@ -80,7 +76,7 @@ pub trait FrameBuffer<G: Graphics> {
     fn new(renderer: G, draw: Rc<G::Texture>, depth_stencil: DepthStencilAttachment<G>) -> Self;
 
     /// Returns the size of the frame buffer in pixels.
-    fn size(&self) -> ImageSize<u32>;
+    fn size(&self) -> Size<u32>;
 
     /// Reset values in the underlying draw depth and stencil buffers
     /// that are covered by a scissor rectangle to a constant value.
@@ -131,7 +127,7 @@ pub trait FrameBuffer<G: Graphics> {
     /// of this frame buffers draw attachment.
     ///
     /// # Arguments
-    /// 
+    ///
     /// * `read_frame_buffer` - a frame buffer which draw texture will be copied.
     /// * `source` - specifies the bounds of the source rectangle within the `read_frame_buffer`.
     /// * `destination` - specifies the bounds of the destination rectangle within thr target frame buffer.

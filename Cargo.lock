@@ -1578,6 +1578,7 @@ dependencies = [
  "derive_more",
  "enum-map",
  "smart-default",
+ "yapgeir_geometry",
  "yapgeir_graphics_hal_macro",
 ]
 

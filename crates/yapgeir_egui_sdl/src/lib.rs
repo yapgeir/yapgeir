@@ -4,7 +4,7 @@ use egui_sdl2_platform::Platform;
 use yapgeir_core::ScreenPpt;
 use yapgeir_egui_painter::{EguiDrawData, EguiPainter};
 use yapgeir_events::Events;
-use yapgeir_graphics_hal::{Graphics, ImageSize};
+use yapgeir_graphics_hal::{Graphics, Size};
 use yapgeir_realm::{IntoSystem, Plugin, Realm, Res, ResMut, System};
 
 pub struct EguiRenderer<G: Graphics> {
@@ -24,7 +24,7 @@ impl Gui {
 }
 
 impl Gui {
-    pub fn new(screen_size: ImageSize<u32>, ppt: ScreenPpt) -> Self {
+    pub fn new(screen_size: Size<u32>, ppt: ScreenPpt) -> Self {
         let mut platform =
             Platform::new((screen_size.w, screen_size.h)).expect("Unable to create GUI");
         platform.set_pixels_per_point(Some(ppt.0));

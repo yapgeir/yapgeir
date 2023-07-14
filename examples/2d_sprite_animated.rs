@@ -228,7 +228,7 @@ fn render<G: Graphics>(
         for (_, (draw_quad, drawable)) in world.query::<(&DrawQuad, &Drawable)>().iter() {
             batch.draw_sprite(
                 DrawRegion::Quad(**draw_quad),
-                TextureRegion::Texels(drawable.sprite.sub_texture.clone().into()),
+                TextureRegion::TexelsBox2D(drawable.sprite.sub_texture),
                 0,
             );
         }
