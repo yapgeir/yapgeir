@@ -8,3 +8,4 @@ license = "MIT OR Apache-2.0"
 yapgeir_realm = { path = "../yapgeir_realm"}
 derive_more.workspace = true
 bevy_reflect.workspace = true
+hecs.workspace = true

@@ -71,7 +71,7 @@ impl Realm {
         self
     }
 
-    pub fn run(&mut self) {
+    pub fn run(mut self) {
         loop {
             if !self.systems.run(&mut self.resources) {
                 break;
