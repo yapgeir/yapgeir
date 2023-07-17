@@ -333,7 +333,7 @@ where
     /// Normalized display coordinates are in a range from [-1; -1] to [1; 1], Y-up with [0; 0]
     /// in the screen center.
     /// * `sampler` - A texture and sampling parameters that will be used for drawing sprites.
-    fn start_batch<'a>(
+    pub fn start_batch<'a>(
         &'a mut self,
         frame_buffer: &'a G::FrameBuffer,
         view_camera: [[f32; 3]; 3],

@@ -1618,6 +1618,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "yapgeir_inspector_egui"
+version = "0.1.0"
+dependencies = [
+ "egui",
+ "yapgeir_realm",
+ "yapgeir_reflection",
+]
+
+[[package]]
 name = "yapgeir_instrument"
 version = "0.1.0"
 dependencies = [

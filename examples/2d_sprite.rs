@@ -17,7 +17,7 @@ use yapgeir_input::{
 use yapgeir_realm::{Realm, Res, ResMut};
 use yapgeir_renderer_2d::{
     quad_index_buffer::QuadIndexBuffer,
-    sprite_renderer::{DrawRegion, SpriteRenderer, TextureRegion},
+    sprite_renderer::{DrawRegion, SpriteProjection, SpriteRenderer, TextureRegion},
 };
 use yapgeir_sdl::SdlSettings;
 use yapgeir_sdl_graphics::SdlWindowBackend;
@@ -178,21 +178,21 @@ fn render<G: Graphics>(
         None,
     );
 
-    {
-        let mut batch = sprite_renderer.start_batch(
-            &fb,
-            Matrix3::identity().into(),
-            Sampler::nearest(&texture),
-        );
-
-        for (_, tile) in world.query::<&Position>().iter() {
-            batch.draw_sprite(
-                DrawRegion::Point(tile.0.cast().into()),
-                TextureRegion::Full,
-                0,
-            );
-        }
-    }
+    sprite_renderer.batch(
+        &fb,
+        Matrix3::identity().into(),
+        SpriteProjection::Center,
+        Sampler::nearest(&texture),
+        |batch| {
+            for (_, tile) in world.query::<&Position>().iter() {
+                batch.draw_sprite(
+                    DrawRegion::Point(tile.0.cast().into()),
+                    TextureRegion::Full,
+                    0,
+                );
+            }
+        },
+    );
 
     graphics.swap_buffers();
 }
