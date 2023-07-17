@@ -16,6 +16,7 @@ use yapgeir_graphics_hal::{
 use crate::{
     batch_renderer::{Batch, BatchIndices},
     quad_index_buffer::QuadIndexBuffer,
+    NdcProjection,
 };
 
 use super::batch_renderer::BatchRenderer;
@@ -66,33 +67,37 @@ const SHADER: TextShaderSource = TextShaderSource {
 #[cfg(target_os = "vita")]
 const SHADER: TextShaderSource = TextShaderSource {
     vertex: r#"
-        uniform float3x3 view;
-        uniform float2 scale;
+        uniform float3x3 view_camera;
+        uniform float2 projection_scale;
+        uniform float2 projection_offset;
 
         void main(
             float2 position,
             float2 tex_position,
             float depth,
+
             float2 out v_tex_position: TEXCOORD0,
             float4 out gl_Position : POSITION
         ) {
             v_tex_position = tex_position;
-            float2 px = round((mul(view, float3(position, 1.0f))).xy);
-            float2 sc = px * scale;
-            gl_Position = float4(sc, depth, 1.0f);
+            float2 px = round((mul(view_camera, float3(position, 1.0f))).xy);
+            float2 uv = (px + projection_offset) * projection_scale;
+            gl_Position = float4(uv, depth, 1.0f);
+
+            // Flip Y axis in the UV.
+            gl_Position.y = -gl_Position.y;
         }
     "#,
     fragment: r#"
-        varying out float4 gl_FragColor : COLOR;
-        varying out float gl_FragDepth : DEPTH;
-        varying in float4 gl_FragCoord : POS;
         uniform sampler2D tex: TEXUNIT0;
 
-        void main(
+        float4 main(
             float2 v_tex_position: TEXCOORD0
         ) {
-            gl_FragColor = tex2D(tex, v_tex_position);
-            gl_FragDepth = gl_FragCoord.z * (1-gl_FragColor.a);
+            float4 gl_FragColor = tex2D(tex, v_tex_position);
+            if (gl_FragColor.a == 0.0) discard;
+
+            return gl_FragColor;
         }
     "#,
 };
@@ -280,12 +285,6 @@ where
     draw_parameters: DrawParameters,
 }
 
-pub enum SpriteProjection {
-    Center,
-    TopLeft,
-    Custom { offset: [f32; 2], scale: [f32; 2] },
-}
-
 impl<G> SpriteRenderer<G>
 where
     G: Graphics,
@@ -337,23 +336,12 @@ where
         &'a mut self,
         frame_buffer: &'a G::FrameBuffer,
         view_camera: [[f32; 3]; 3],
-        projection: SpriteProjection,
+        projection: NdcProjection,
         sampler: Sampler<G, &'a G::Texture>,
     ) -> SpriteBatch<'a, G> {
         let size = frame_buffer.size();
 
-        let (projection_offset, projection_scale) = match projection {
-            SpriteProjection::Center => (
-                [0., 0.],
-                [1. / (size.w / 2) as f32, 1. / (size.h / 2) as f32],
-            ),
-            SpriteProjection::TopLeft => {
-                let offset = [-((size.w / 2) as f32), ((size.h / 2) as f32)];
-                let scale = [-1. / offset[0], 1. / offset[1]];
-                (offset, scale)
-            }
-            SpriteProjection::Custom { offset, scale } => (offset, scale),
-        };
+        let (projection_offset, projection_scale) = projection.offset_and_scale(size);
 
         SpriteBatch {
             texture: sampler.texture,
@@ -391,10 +379,10 @@ where
         &'a mut self,
         frame_buffer: &'a G::FrameBuffer,
         view_camera: [[f32; 3]; 3],
-        projection: SpriteProjection,
+        projection: NdcProjection,
         sampler: Sampler<G, &'a G::Texture>,
 
-        mut draw: impl FnMut(&mut SpriteBatch<'a, G>),
+        draw: impl FnOnce(&mut SpriteBatch<'a, G>),
     ) {
         let mut batch = self.start_batch(frame_buffer, view_camera, projection, sampler);
         draw(&mut batch);

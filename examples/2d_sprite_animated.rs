@@ -21,7 +21,8 @@ use yapgeir_physics_2d::simple::KinematicBody;
 use yapgeir_realm::{Realm, Res, ResMut};
 use yapgeir_renderer_2d::{
     quad_index_buffer::QuadIndexBuffer,
-    sprite_renderer::{DrawRegion, SpriteProjection, SpriteRenderer, TextureRegion},
+    sprite_renderer::{DrawRegion, SpriteRenderer, TextureRegion},
+    NdcProjection,
 };
 use yapgeir_sdl::SdlSettings;
 use yapgeir_sdl_graphics::SdlWindowBackend;
@@ -221,7 +222,7 @@ fn render<G: Graphics>(
     sprite_renderer.batch(
         &fb,
         Matrix3::identity().into(),
-        SpriteProjection::Center,
+        NdcProjection::Center,
         Sampler::nearest(&texture),
         |batch| {
             for (_, (draw_quad, drawable)) in world.query::<(&DrawQuad, &Drawable)>().iter() {

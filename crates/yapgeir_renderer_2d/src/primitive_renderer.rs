@@ -13,16 +13,16 @@ const SHADER: TextShaderSource = TextShaderSource {
     vertex: r#"
         #version 120
         
+        uniform mat3 view_projection;
+
         attribute vec2 position;
         attribute vec4 color;
-        
-        uniform mat3 view;
-        
+
         varying vec4 o_color;
         
         void main() {
             o_color = color;
-            gl_Position = vec4(view * vec3(position, 1.0), 1.0);
+            gl_Position = vec4(view_projection * vec3(position, 1.0), 1.0);
 
             // Flip Y axis in the UV
             gl_Position.y = -gl_Position.y;
@@ -42,21 +42,21 @@ const SHADER: TextShaderSource = TextShaderSource {
 #[cfg(target_os = "vita")]
 const SHADER: TextShaderSource = TextShaderSource {
     vertex: r#"
-        uniform float3x3 view;
+        uniform float3x3 view_projection;
 
         void main(
             float2 position,
             float4 color,
-            float4 out v_color : COLOR1,
+            float4 out o_color : COLOR1,
             float4 out gl_Position : POSITION
         ) {
-            v_color = color;
-            gl_Position = float4(mul(view, float3(position, 1.0f)), 1.0f);
+            o_color = color;
+            gl_Position = float4(mul(view_projection, float3(position, 1.0f)), 1.0f);
         }
     "#,
     fragment: r#"
-        float4 main(float4 v_color : COLOR1) {
-            return v_color;
+        float4 main(float4 o_color : COLOR1) {
+            return o_color;
         }
     "#,
 };
@@ -71,7 +71,7 @@ pub struct PrimitiveVertex {
 #[repr(C)]
 #[derive(Copy, Clone, Default, Zeroable, Pod, Uniforms)]
 pub struct PrimitiveUniforms {
-    pub view: [[f32; 3]; 3],
+    pub view_projection: [[f32; 3]; 3],
 }
 
 pub struct PrimitiveBatch<'a, G: Graphics> {
@@ -126,14 +126,29 @@ impl<G: Graphics> PrimitiveRenderer<G> {
 
     pub fn start_batch<'a>(
         &'a mut self,
-        fb: &'a G::FrameBuffer,
-        uniforms: &PrimitiveUniforms,
+        frame_buffer: &'a G::FrameBuffer,
+        view_projection: [[f32; 3]; 3],
         draw_parameters: &'a DrawParameters,
     ) -> PrimitiveBatch<'a, G> {
         PrimitiveBatch {
-            batch: self
-                .renderer
-                .start_batch(fb, &draw_parameters, uniforms, []),
+            batch: self.renderer.start_batch(
+                frame_buffer,
+                &draw_parameters,
+                &PrimitiveUniforms { view_projection },
+                [],
+            ),
         }
+    }
+
+    pub fn batch<'a>(
+        &'a mut self,
+        frame_buffer: &'a G::FrameBuffer,
+        view_projection: [[f32; 3]; 3],
+        draw_parameters: &'a DrawParameters,
+
+        draw: impl FnOnce(&mut PrimitiveBatch<'a, G>),
+    ) {
+        let mut batch = self.start_batch(frame_buffer, view_projection, draw_parameters);
+        draw(&mut batch);
     }
 }

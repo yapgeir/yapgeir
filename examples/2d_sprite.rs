@@ -17,7 +17,8 @@ use yapgeir_input::{
 use yapgeir_realm::{Realm, Res, ResMut};
 use yapgeir_renderer_2d::{
     quad_index_buffer::QuadIndexBuffer,
-    sprite_renderer::{DrawRegion, SpriteProjection, SpriteRenderer, TextureRegion},
+    sprite_renderer::{DrawRegion, SpriteRenderer, TextureRegion},
+    NdcProjection,
 };
 use yapgeir_sdl::SdlSettings;
 use yapgeir_sdl_graphics::SdlWindowBackend;
@@ -181,7 +182,7 @@ fn render<G: Graphics>(
     sprite_renderer.batch(
         &fb,
         Matrix3::identity().into(),
-        SpriteProjection::Center,
+        NdcProjection::Center,
         Sampler::nearest(&texture),
         |batch| {
             for (_, tile) in world.query::<&Position>().iter() {

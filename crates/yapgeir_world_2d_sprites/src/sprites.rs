@@ -5,7 +5,7 @@ use hecs::{Entity, With, Without, World};
 use nalgebra::Point;
 use yapgeir_realm::{Realm, Res, ResMut};
 use yapgeir_world_2d::{
-    Dirty, DrawQuad, Drawable, Flip, Sprite, Static, Transform, TransformPpt, WorldCamera,
+    Dirty, DrawQuad, Drawable, Flip, Static, Transform, TransformPpt, WorldCamera,
 };
 
 #[cfg(feature = "reflection")]
@@ -105,13 +105,13 @@ fn update_quads(
 pub fn plugin(realm: &mut Realm) {
     #[cfg(feature = "reflection")]
     realm
-        .register_type::<DrawQuad>()
-        .register_type::<Drawable>()
-        .register_type::<Static>()
-        .register_type::<Dirty>()
-        .register_type::<Flip>()
-        .register_type::<Transform>()
-        .register_type::<Sprite>();
+        .register_type::<yapgeir_world_2d::DrawQuad>()
+        .register_type::<yapgeir_world_2d::Drawable>()
+        .register_type::<yapgeir_world_2d::Static>()
+        .register_type::<yapgeir_world_2d::Dirty>()
+        .register_type::<yapgeir_world_2d::Flip>()
+        .register_type::<yapgeir_world_2d::Transform>()
+        .register_type::<yapgeir_world_2d::Sprite>();
 
     realm
         .initialize_resource::<WorldCamera>()
