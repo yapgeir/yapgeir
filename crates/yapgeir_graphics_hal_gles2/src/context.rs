@@ -139,13 +139,6 @@ impl<B: WindowBackend> Drop for GlesContext<B> {
 impl<B: WindowBackend> GlesContext<B> {
     pub unsafe fn new(backend: B, settings: GlesSettings) -> Self {
         let gl = glow::Context::from_loader_function(|s| backend.get_proc_address(s));
-        let mut texture_unit_limit = gl.get_parameter_i32(glow::MAX_TEXTURE_IMAGE_UNITS) as usize;
-
-        // Reserve one texture unit for a fake framebuffer
-        // TODO: check if we can use blitFramebuffer instead of a shader in the final stage
-        if settings.flip_default_frame_buffer {
-            texture_unit_limit -= 1;
-        }
 
         gl.pixel_store_i32(glow::PACK_ALIGNMENT, 1);
         gl.pixel_store_i32(glow::UNPACK_ALIGNMENT, 1);
@@ -158,6 +151,12 @@ impl<B: WindowBackend> GlesContext<B> {
         };
 
         let default_framebuffer_size = backend.default_frame_buffer_size();
+
+        let mut texture_unit_limit = gl.get_parameter_i32(glow::MAX_TEXTURE_IMAGE_UNITS) as usize;
+        // Reserve a texture unit for the fake default framebuffer
+        if settings.flip_default_frame_buffer && !extensions.blit_framebuffer {
+            texture_unit_limit -= 1;
+        }
 
         let state = RefCell::new(GlesState {
             texture_unit_limit,

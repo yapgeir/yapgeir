@@ -258,9 +258,8 @@ pub struct FrameBufferBlitter {
 impl FrameBufferBlitter {
     pub unsafe fn new(ctx: &mut GlesContextRef) -> Self {
         match ctx.extensions.blit_framebuffer {
-            // FIXME: flip
-            false => Self { fallback: None },
-            true => Self {
+            true => Self { fallback: None },
+            false => Self {
                 fallback: FallbackFramebufferBlitter::new(ctx).into(),
             },
         }
