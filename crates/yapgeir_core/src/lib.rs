@@ -12,7 +12,6 @@ use yapgeir_reflection::bevy_reflect::{self, Reflect};
 /// dependency all together.
 pub mod __reflection_stubs;
 
-
 pub mod frame_stats;
 
 /// A resource that holds time that passed since the previous frame in seconds.
@@ -40,7 +39,7 @@ pub struct WindowSize {
 
 /// A component that can be used for debugging your entities. A name is either an owned string,
 /// or a reference with a 'static lifetime.
-#[derive(Debug, Clone, PartialEq, Eq, Deref)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Deref)]
 #[cfg_attr(feature = "reflection", derive(Reflect))]
 #[deref(forward)]
 pub struct Named(pub Cow<'static, str>);

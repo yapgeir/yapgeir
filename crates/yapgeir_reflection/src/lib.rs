@@ -1,9 +1,11 @@
 use std::{any::TypeId, collections::HashMap, marker::PhantomData};
 
-use bevy_reflect::{GetTypeRegistration, Reflect, ReflectMut, TypeRegistry};
+use bevy_reflect::{
+    std_traits::ReflectDefault, GetTypeRegistration, Reflect, ReflectMut, TypeRegistry,
+};
 use derive_more::Deref;
 use hecs::{Component, EntityRef};
-use yapgeir_realm::{Realm, ResMut};
+use yapgeir_realm::{resource_exists, IntoFilteredSystem, Realm, ResMut};
 
 pub use bevy_reflect;
 
@@ -11,10 +13,6 @@ pub use bevy_reflect;
 pub struct Reflection {
     pub type_registry: TypeRegistry,
     pub component_visitors: ComponentVisitors,
-}
-
-pub trait RealmExtensions {
-    fn register_type<T: GetTypeRegistration + Reflect + 'static>(&mut self) -> &mut Self;
 }
 
 pub trait ComponentVisitor {
@@ -34,27 +32,48 @@ impl<T: Reflect> ComponentVisitor for TypedComponentVisitor<T> {
 #[derive(Default, Deref)]
 pub struct ComponentVisitors(HashMap<TypeId, Box<dyn ComponentVisitor>>);
 
-fn register_type<'a, T: GetTypeRegistration + Reflect + Component>(
-    reflection: Option<ResMut<Reflection>>,
+fn register_non_default<'a, T: GetTypeRegistration + Reflect + Component>(
+    mut reflection: ResMut<Reflection>,
 ) {
-    let mut reflection = match reflection {
-        Some(registry) => registry,
-        None => return,
-    };
-
-    reflection
-        .type_registry
-        .add_registration(T::get_type_registration());
-
+    reflection.type_registry.register::<T>();
     reflection.component_visitors.0.insert(
         TypeId::of::<T>(),
         Box::new(TypedComponentVisitor::<T>(Default::default())),
     );
 }
 
+fn register_default<'a, T: GetTypeRegistration + Reflect + Default + Component>(
+    mut reflection: ResMut<Reflection>,
+) {
+    reflection
+        .type_registry
+        .register_type_data::<T, ReflectDefault>();
+}
+
+pub trait RealmExtensions {
+    fn register_type<T>(&mut self) -> &mut Self
+    where
+        T: GetTypeRegistration + Reflect + Default + 'static;
+
+    fn register_non_default_type<T>(&mut self) -> &mut Self
+    where
+        T: GetTypeRegistration + Reflect + Component + 'static;
+}
+
 impl RealmExtensions for Realm {
-    fn register_type<T: GetTypeRegistration + Reflect + 'static>(&mut self) -> &mut Self {
-        self.run_system(register_type::<T>)
+    fn register_type<T>(&mut self) -> &mut Self
+    where
+        T: GetTypeRegistration + Reflect + Default + 'static,
+    {
+        self.register_non_default_type::<T>()
+            .run_system(register_default::<T>.filter(resource_exists::<Reflection>()))
+    }
+
+    fn register_non_default_type<T>(&mut self) -> &mut Self
+    where
+        T: GetTypeRegistration + Reflect + Component + 'static,
+    {
+        self.run_system(register_non_default::<T>.filter(resource_exists::<Reflection>()))
     }
 }
 

@@ -113,8 +113,8 @@ pub fn plugin(settings: PhysicsSettings) -> impl Plugin {
     move |realm: &mut Realm| {
         #[cfg(feature = "reflection")]
         realm
-            .register_type::<RigidBody>()
-            .register_type::<Collider>();
+            .register_non_default_type::<RigidBody>()
+            .register_non_default_type::<Collider>();
 
         realm
             .add_resource(Rapier::new(settings.gravity))

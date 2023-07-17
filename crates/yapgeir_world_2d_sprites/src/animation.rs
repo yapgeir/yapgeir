@@ -9,7 +9,10 @@ use yapgeir_realm::{system, Realm, Res, ResMut};
 use yapgeir_world_2d::Drawable;
 
 #[cfg(feature = "reflection")]
-use yapgeir_reflection::{bevy_reflect::{self, Reflect}, RealmExtensions};
+use yapgeir_reflection::{
+    bevy_reflect::{self, Reflect},
+    RealmExtensions,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Constructor, Hash)]
 #[cfg_attr(feature = "reflection", derive(Reflect))]
@@ -222,7 +225,9 @@ fn update(mut world: ResMut<World>, store: Res<AnimationStorage>, delta: Res<Del
 
 pub fn plugin(realm: &mut Realm) {
     #[cfg(feature = "reflection")]
-    realm.register_type::<Animator>();
+    realm
+        .register_type::<Frame>()
+        .register_non_default_type::<Animator>();
 
     realm
         .add_resource(AnimationStorage::default())

@@ -5,7 +5,7 @@ use std::{
     borrow::Cow,
     ffi::OsString,
     path::{Path, PathBuf},
-    time::{Duration, Instant},
+    time::Duration,
 };
 
 use egui::{CollapsingHeader, Grid};
@@ -430,7 +430,6 @@ pub fn plugin(realm: &mut Realm) {
         .register_type::<Cow<'static, str>>()
         .register_type::<Cow<'static, Path>>()
         .register_type::<Duration>()
-        .register_type::<Instant>()
         .register_type::<[[f32; 2]; 4]>()
         .register_type::<[f32; 2]>()
         .register_type::<[f32; 3]>()

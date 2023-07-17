@@ -66,7 +66,7 @@ pub struct DrawQuad([[f32; 2]; 4]);
 ///
 /// If you change the `Transform` component of an entity, it's `Drawable` position will not be changed.
 /// To force update of the `Drawable` component, add `Dirty` marker to your `Static` entity.
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone)]
 #[cfg_attr(feature = "reflection", derive(Reflect))]
 pub struct Static;
 
@@ -74,7 +74,7 @@ pub struct Static;
 /// After recalculation `Dirty` component will be removed automatically.
 ///
 /// Adding `Dirty` to a non-static entity will have no effect.
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone)]
 #[cfg_attr(feature = "reflection", derive(Reflect))]
 pub struct Dirty;
 
@@ -104,7 +104,7 @@ pub struct Transform {
 
 /// Depth used for depth buffer to define render order.
 /// 0 is a near plane (foreground), and u16::MAX is a far plane (background).
-#[derive(Debug, Clone, Copy, Deref, DerefMut)]
+#[derive(Default, Debug, Clone, Copy, Deref, DerefMut)]
 #[cfg_attr(feature = "reflection", derive(Reflect))]
 pub struct Depth(pub u16);
 
