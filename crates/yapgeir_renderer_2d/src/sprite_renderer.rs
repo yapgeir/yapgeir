@@ -2,11 +2,7 @@ use bytemuck::{Pod, Zeroable};
 use std::rc::Rc;
 use yapgeir_geometry::{Box2D, Rect};
 use yapgeir_graphics_hal::{
-    draw_params::Blend,
-    draw_params::{
-        BlendingFactor, BlendingFunction, Depth as DrawDepth, DepthStencilTest, DrawParameters,
-        SeparateBlending,
-    },
+    draw_params::{Depth as DrawDepth, DepthStencilTest, DrawParameters},
     frame_buffer::FrameBuffer,
     sampler::Sampler,
     samplers::SamplerAttribute,
@@ -29,8 +25,9 @@ const SHADER: TextShaderSource = TextShaderSource {
     vertex: r#"
         #version 120
 
-        uniform mat3 view;
-        uniform vec2 scale;
+        uniform mat3 view_camera;
+        uniform vec2 projection_scale;
+        uniform vec2 projection_offset;
 
         attribute vec2 position;
         attribute vec2 tex_position;
@@ -44,9 +41,9 @@ const SHADER: TextShaderSource = TextShaderSource {
 
         void main() {
             v_tex_position = tex_position;
-            vec2 px = round((view * vec3(position, 1.0)).xy);
-            vec2 sc = px * scale;
-            gl_Position = vec4(sc, depth, 1.0);
+            vec2 px = round((view_camera * vec3(position, 1.0)).xy);
+            vec2 uv = (px + projection_offset) * projection_scale;
+            gl_Position = vec4(uv, depth, 1.0);
 
             // Flip Y axis in the UV.
             gl_Position.y = -gl_Position.y;
@@ -122,8 +119,9 @@ impl SpriteVertex {
 #[repr(C)]
 #[derive(Copy, Clone, Default, Debug, Zeroable, Pod, Uniforms)]
 pub struct SpriteUniforms {
-    pub view: [[f32; 3]; 3],
-    pub scale: [f32; 2],
+    pub view_camera: [[f32; 3]; 3],
+    pub projection_offset: [f32; 2],
+    pub projection_scale: [f32; 2],
 }
 
 pub struct SpriteBatch<'a, G>
@@ -282,6 +280,12 @@ where
     draw_parameters: DrawParameters,
 }
 
+pub enum SpriteProjection {
+    Center,
+    TopLeft,
+    Custom { offset: [f32; 2], scale: [f32; 2] },
+}
+
 impl<G> SpriteRenderer<G>
 where
     G: Graphics,
@@ -307,33 +311,59 @@ where
                     // Use the whole range of possible depths
                     range: (-1., 1.),
                 }),
-                blend: Some(Blend {
-                    function: SeparateBlending::all(BlendingFunction {
-                        source: BlendingFactor::SourceAlpha,
-                        destination: BlendingFactor::OneMinusSourceAlpha,
-                    }),
-                    ..Default::default()
-                }),
                 ..Default::default()
             },
         }
     }
 
-    pub fn start_batch<'a>(
+    /// Create a new sprite draw batch.
+    ///
+    /// Batch will be flushed on drop, so ensure that it is dropped before swap_buffers is called.
+    /// It is not recommended to do any other draw calls between start_batch and a drop, because
+    /// batch can be flushed at any time when a number of vertices exceeds the buffer size, and not
+    /// just on drop.
+    ///
+    /// # Arguments
+    ///
+    /// * `frame_buffer` - Frame buffer to draw to.
+    /// * `view_camera` - A camera matrix that will transform world space to pixel space.
+    /// A camera is separate from a projection, because sprite shader does UV rounding,
+    /// and this rounding should be done at pixel scale.
+    /// * `projection` - Describes how pixels are projected to normalized display coordinates.
+    /// Normalized display coordinates are in a range from [-1; -1] to [1; 1], Y-up with [0; 0]
+    /// in the screen center.
+    /// * `sampler` - A texture and sampling parameters that will be used for drawing sprites.
+    fn start_batch<'a>(
         &'a mut self,
-        fb: &'a G::FrameBuffer,
-        camera: [[f32; 3]; 3],
+        frame_buffer: &'a G::FrameBuffer,
+        view_camera: [[f32; 3]; 3],
+        projection: SpriteProjection,
         sampler: Sampler<G, &'a G::Texture>,
     ) -> SpriteBatch<'a, G> {
-        let size = fb.size();
+        let size = frame_buffer.size();
+
+        let (projection_offset, projection_scale) = match projection {
+            SpriteProjection::Center => (
+                [0., 0.],
+                [1. / (size.w / 2) as f32, 1. / (size.h / 2) as f32],
+            ),
+            SpriteProjection::TopLeft => {
+                let offset = [-((size.w / 2) as f32), ((size.h / 2) as f32)];
+                let scale = [-1. / offset[0], 1. / offset[1]];
+                (offset, scale)
+            }
+            SpriteProjection::Custom { offset, scale } => (offset, scale),
+        };
+
         SpriteBatch {
             texture: sampler.texture,
             batch: self.renderer.start_batch(
-                fb,
+                frame_buffer,
                 &self.draw_parameters,
                 &SpriteUniforms {
-                    view: camera,
-                    scale: [1. / (size.w / 2) as f32, 1. / (size.h / 2) as f32],
+                    view_camera,
+                    projection_offset,
+                    projection_scale,
                 },
                 [SamplerAttribute {
                     name: "tex",
@@ -342,5 +372,31 @@ where
                 }],
             ),
         }
+    }
+
+    /// Create a new sprite draw batch and execute draw calls with it.
+    ///
+    /// # Arguments
+    ///
+    /// * `frame_buffer` - Frame buffer to draw to.
+    /// * `view_camera` - A camera matrix that will transform world space to pixel space.
+    /// A camera is separate from a projection, because sprite shader does UV rounding,
+    /// and this rounding should be done at pixel scale.
+    /// * `projection` - Describes how pixels are projected to normalized display coordinates.
+    /// Normalized display coordinates are in a range from [-1; -1] to [1; 1], Y-up with [0; 0]
+    /// in the screen center.
+    /// * `sampler` - A texture and sampling parameters that will be used for drawing sprites.
+    /// * `draw` - A clojure that does the actual drawing using a batch provided in the argument
+    pub fn batch<'a>(
+        &'a mut self,
+        frame_buffer: &'a G::FrameBuffer,
+        view_camera: [[f32; 3]; 3],
+        projection: SpriteProjection,
+        sampler: Sampler<G, &'a G::Texture>,
+
+        mut draw: impl FnMut(&mut SpriteBatch<'a, G>),
+    ) {
+        let mut batch = self.start_batch(frame_buffer, view_camera, projection, sampler);
+        draw(&mut batch);
     }
 }
