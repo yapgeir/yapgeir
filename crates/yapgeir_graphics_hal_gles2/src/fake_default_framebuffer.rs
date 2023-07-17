@@ -1,69 +1,20 @@
-use std::cell::{Cell, RefCell};
-
 use glow::HasContext;
-use yapgeir_graphics_hal::{
-    buffer::{BufferKind, BufferUsage},
-    frame_buffer::RenderBufferFormat,
-    index_buffer::PrimitiveMode,
-    shader::TextShaderSource,
-    Size, Rgba,
+use yapgeir_graphics_hal::{render_buffer::RenderBufferFormat, sampler::Filter, Size};
+
+use crate::{
+    constants::GlConstant,
+    context::GlesContextRef,
+    frame_buffer_blitter::{BlitSourceRect, FrameBufferBlitter, ReadSource},
 };
 
-use crate::{constants::GlConstant, context::GlesContextRef, shader::compile_program};
-#[cfg(not(target_os = "vita"))]
-const SHADER: TextShaderSource = TextShaderSource {
-    vertex: r#"
-        #version 120
-
-        attribute vec2 position;
-        varying vec2 v_tex_position;
-
-        void main() {
-            v_tex_position = (position + 1) * 0.5;
-            v_tex_position.y = 1 - v_tex_position.y;
-            gl_Position = vec4(position, 1, 1);
-        }
-    "#,
-    fragment: r#"
-        #version 120
-
-        uniform sampler2D tex;
-
-        varying vec2 v_tex_position;
-        void main() {
-            gl_FragColor = texture2D(tex, v_tex_position);
-        }
-    "#,
-};
-
-#[cfg(target_os = "vita")]
-const SHADER: TextShaderSource = TextShaderSource {
-    vertex: r#"
-        void main(
-            float2 position,
-            float2 out v_tex_position: TEXCOORD0,
-            float4 out gl_Position : POSITION
-        ) {
-            v_tex_position = (position + 1) * 0.5;
-            gl_Position = float4(position, 1, 1);
-        }
-    "#,
-    fragment: r#"
-        uniform sampler2D tex: TEXUNIT0;
-
-        float4 main(float2 v_tex_position: TEXCOORD0) {
-            return tex2D(tex, v_tex_position);
-        }
-    "#,
-};
-
-pub struct FakeFramebuffer {
+pub struct FakeDefaultFrameBuffer {
+    pub size: Size<u32>,
     pub framebuffer: glow::Framebuffer,
     pub draw_texture: glow::Texture,
     pub depth_stencil: glow::Renderbuffer,
 }
 
-impl FakeFramebuffer {
+impl FakeDefaultFrameBuffer {
     pub unsafe fn new(ctx: &mut GlesContextRef, size: Size<u32>) -> Self {
         // Create a new draw texture
         let draw_texture = ctx.gl.create_texture().expect("unable to create a texture");
@@ -137,10 +88,40 @@ impl FakeFramebuffer {
         );
 
         Self {
+            size,
             framebuffer,
             draw_texture,
             depth_stencil,
         }
+    }
+
+    pub unsafe fn framebuffer(
+        &mut self,
+        ctx: &mut GlesContextRef,
+        size: Size<u32>,
+    ) -> glow::Framebuffer {
+        if size != self.size {
+            self.size = size;
+            self.destroy(&ctx.gl);
+            *self = FakeDefaultFrameBuffer::new(ctx, size);
+        }
+
+        self.framebuffer
+    }
+
+    pub unsafe fn blit(&self, ctx: &mut GlesContextRef, blitter: &FrameBufferBlitter) {
+        blitter.blit(
+            ctx,
+            None,
+            (
+                self.size,
+                self.framebuffer,
+                ReadSource::Unit(ctx.state.texture_unit_limit),
+            ),
+            BlitSourceRect::FullFlipY,
+            self.size.into(),
+            Filter::Nearest,
+        );
     }
 
     // To prevent recursive objects, cleanup is manual
@@ -148,106 +129,5 @@ impl FakeFramebuffer {
         gl.delete_framebuffer(self.framebuffer);
         gl.delete_renderbuffer(self.depth_stencil);
         gl.delete_texture(self.draw_texture);
-    }
-}
-
-pub struct ScreenFlipper {
-    pub size: Cell<Size<u32>>,
-
-    pub framebuffer: RefCell<FakeFramebuffer>,
-    pub vertex_buffer: glow::Buffer,
-    pub program: glow::Program,
-
-    vertex_attrib_location: u32,
-}
-
-impl ScreenFlipper {
-    pub unsafe fn new(ctx: &mut GlesContextRef, size: Size<u32>) -> Self {
-        let framebuffer = FakeFramebuffer::new(ctx, size);
-
-        let vertex_buffer = ctx.gl.create_buffer().expect("Unable to create buffer.");
-        ctx.bind_buffer(BufferKind::Vertex, Some(vertex_buffer));
-        ctx.gl.buffer_data_u8_slice(
-            BufferKind::Vertex.gl_const(),
-            bytemuck::cast_slice(&[[-1f32, -1f32], [-1., 1.], [1., 1.], [1., -1.]]),
-            BufferUsage::Static.gl_const(),
-        );
-
-        let program = compile_program(&ctx.gl, &SHADER);
-        let uniform_location = ctx
-            .gl
-            .get_uniform_location(program, "tex")
-            .expect("Uniform tex not found!");
-
-        ctx.use_program(Some(program));
-        ctx.gl
-            .uniform_1_i32(Some(&uniform_location), ctx.state.texture_unit_limit as i32);
-
-        let vertex_attrib_location = ctx
-            .gl
-            .get_attrib_location(program, "position")
-            .expect("attribute location not found");
-
-        Self {
-            size: Cell::new(size),
-            framebuffer: RefCell::new(framebuffer),
-            vertex_buffer,
-            program,
-            vertex_attrib_location,
-        }
-    }
-
-    pub unsafe fn framebuffer(
-        &self,
-        ctx: &mut GlesContextRef,
-        size: Size<u32>,
-    ) -> glow::Framebuffer {
-        let mut fb = self.framebuffer.borrow_mut();
-        if size != self.size.get() {
-            self.size.set(size);
-            fb.destroy(&ctx.gl);
-            *fb = FakeFramebuffer::new(ctx, size);
-        }
-
-        fb.framebuffer
-    }
-
-    pub unsafe fn blit(&self, ctx: &mut GlesContextRef) {
-        ctx.bind_frame_buffer(None);
-        ctx.use_program(Some(self.program));
-
-        if ctx.extensions.vertex_array_objects {
-            ctx.bind_vertex_array(None);
-        }
-
-        ctx.state.draw_descriptor_cache.current = 0;
-        ctx.bind_buffer(BufferKind::Vertex, Some(self.vertex_buffer));
-
-        ctx.gl
-            .enable_vertex_attrib_array(self.vertex_attrib_location);
-        ctx.gl
-            .vertex_attrib_pointer_f32(self.vertex_attrib_location, 2, glow::FLOAT, false, 8, 0);
-
-        ctx.set_blend(None);
-        ctx.set_color_mask(Rgba::all(true));
-        ctx.set_cull_face(None);
-        ctx.set_depth(None);
-        ctx.set_stencil(None);
-        ctx.set_scissor(None);
-        ctx.set_viewport(self.size.get().into());
-        ctx.set_dithering(false);
-
-        ctx.gl
-            .draw_arrays(PrimitiveMode::TriangleFan.gl_const(), 0, 4);
-    }
-
-    pub unsafe fn drop_all(&self, gl: &glow::Context) {
-        self.framebuffer.borrow().destroy(gl);
-
-        gl.use_program(None);
-        gl.bind_buffer(glow::ARRAY_BUFFER, None);
-
-        gl.delete_buffer(self.vertex_buffer);
-        gl.delete_program(self.program);
     }
 }

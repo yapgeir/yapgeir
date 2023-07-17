@@ -3,9 +3,8 @@ use std::{ffi::c_void, rc::Rc};
 use buffer::{Buffer, BufferData, BufferKind, BufferUsage, ByteBuffer};
 use bytemuck::Pod;
 use draw_descriptor::{DrawDescriptor, IndexBinding, VertexBindings};
-use frame_buffer::{
-    DepthStencilAttachment, FrameBuffer, ReadFormat, RenderBuffer, RenderBufferFormat,
-};
+use frame_buffer::{DepthStencilAttachment, FrameBuffer, ReadFormat};
+use render_buffer::{RenderBuffer, RenderBufferFormat};
 use shader::{Shader, TextShaderSource};
 use texture::{PixelFormat, Texture};
 use uniforms::{UniformBuffer, Uniforms};
@@ -17,6 +16,7 @@ pub mod draw_descriptor;
 pub mod draw_params;
 pub mod frame_buffer;
 pub mod index_buffer;
+pub mod render_buffer;
 pub mod sampler;
 pub mod samplers;
 pub mod shader;

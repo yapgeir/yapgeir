@@ -44,7 +44,7 @@ impl UniformKind {
 }
 
 pub struct ShaderState {
-    pub sampler_attributes: HashMap<String, (glow::UniformLocation, u8)>,
+    pub sampler_attributes: HashMap<String, (glow::UniformLocation, usize)>,
     pub uniforms_cache: (&'static [UniformAttribute], Vec<u8>),
 }
 
@@ -91,7 +91,7 @@ unsafe fn get_uniforms(
     program: glow::Program,
 ) -> (
     HashMap<String, (glow::UniformLocation, UniformKind, usize)>,
-    HashMap<String, (glow::UniformLocation, u8)>,
+    HashMap<String, (glow::UniformLocation, usize)>,
 ) {
     let uniform_count = gl.get_active_uniforms(program) as usize;
     let mut uniforms = HashMap::with_capacity(uniform_count);

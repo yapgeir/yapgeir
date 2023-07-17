@@ -1,3 +1,4 @@
+use core::panic;
 use std::{borrow::Borrow, ops::Deref, rc::Rc};
 
 use bitvec::prelude::BitArray;
@@ -7,19 +8,20 @@ use glow::HasContext;
 use yapgeir_graphics_hal::{
     draw_params::DrawParameters,
     frame_buffer::{
-        Attachment, DepthStencilAttachment, FrameBuffer, Indices, ReadFormat, RenderBuffer,
-        RenderBufferFormat,
+        Attachment, DepthStencilAttachment, FlipSource, FrameBuffer, Indices, ReadFormat,
     },
-    sampler::SamplerState,
+    sampler::{Filter, SamplerState},
     samplers::SamplerAttribute,
     uniforms::{UniformAttribute, Uniforms},
-    Size, Rect, Rgba, WindowBackend,
+    Rect, Rgba, Size, WindowBackend,
 };
 
 use crate::{
     constants::GlConstant,
     context::{GlesContext, GlesContextRef},
     draw_descriptor::GlesDrawDescriptor,
+    frame_buffer_blitter::{BlitSourceRect, ReadSource},
+    render_buffer::GlesRenderBuffer,
     shader::{GlesShader, ShaderState, UniformKind},
     texture::{GlesTexture, RgbLayout, RgbaLayout},
     uniforms::GlesUniformBuffer,
@@ -49,46 +51,6 @@ impl GlesReadFormat {
             GlesReadFormat::Alpha => (glow::ALPHA, glow::UNSIGNED_BYTE),
             GlesReadFormat::Rgb(f) => (glow::RGB, f.gl_const()),
             GlesReadFormat::Rgba(f) => (glow::RGBA, f.gl_const()),
-        }
-    }
-}
-
-pub struct GlesRenderBuffer<B: WindowBackend> {
-    ctx: Gles<B>,
-    renderbuffer: glow::Renderbuffer,
-}
-
-impl<B: WindowBackend> RenderBuffer<Gles<B>> for GlesRenderBuffer<B> {
-    type Format = RenderBufferFormat;
-
-    fn new(ctx: Gles<B>, size: Size<u32>, format: RenderBufferFormat) -> Self {
-        let format = format.gl_const();
-
-        let renderbuffer = unsafe {
-            let mut ctx = ctx.get_ref();
-            let rb = ctx
-                .gl
-                .create_renderbuffer()
-                .expect("unable to create a renderbuffer");
-            ctx.bind_render_buffer(Some(rb));
-            ctx.gl
-                .renderbuffer_storage(glow::RENDERBUFFER, format, size.w as i32, size.h as i32);
-
-            rb
-        };
-
-        Self { ctx, renderbuffer }
-    }
-}
-
-impl<B: WindowBackend> Drop for GlesRenderBuffer<B> {
-    fn drop(&mut self) {
-        unsafe {
-            let mut ctx = self.ctx.get_ref();
-            if ctx.state.bound_render_buffer == Some(self.renderbuffer) {
-                ctx.bind_render_buffer(None);
-            }
-            ctx.gl.delete_renderbuffer(self.renderbuffer);
         }
     }
 }
@@ -151,10 +113,12 @@ enum Resources<B: WindowBackend> {
 impl<B: WindowBackend> Resources<B> {
     fn framebuffer(&self, ctx: &GlesContext<B>) -> Option<glow::Framebuffer> {
         match self {
-            Resources::Default => match &ctx.screen_flipper {
-                Some(screen_flipper) => {
-                    Some(unsafe { screen_flipper.framebuffer(&mut ctx.get_ref(), self.size(ctx)) })
-                }
+            Resources::Default => match &ctx.fake_default_frame_buffer {
+                Some(fake_default_frame_buffer) => Some(unsafe {
+                    fake_default_frame_buffer
+                        .borrow_mut()
+                        .framebuffer(&mut ctx.get_ref(), self.size(ctx))
+                }),
                 None => None,
             },
             Resources::Managed { framebuffer, .. } => Some(*framebuffer),
@@ -242,7 +206,7 @@ impl<B: WindowBackend + 'static> FrameBuffer<Gles<B>> for GlesFrameBuffer<B> {
         stencil: Option<u8>,
     ) {
         // Flip scissor coordinates, unless we're conforming to a coordinate space
-        let scissor = if self.ctx.settings.flip_default_framebuffer {
+        let scissor = if self.ctx.settings.flip_default_frame_buffer {
             scissor
         } else {
             scissor.map(|scissor| {
@@ -286,18 +250,46 @@ impl<B: WindowBackend + 'static> FrameBuffer<Gles<B>> for GlesFrameBuffer<B> {
             draw_parameters,
             size,
             indices,
-            self.ctx.settings.flip_default_framebuffer,
+            self.ctx.settings.flip_default_frame_buffer,
         );
     }
 
     fn blit(
         &self,
-        _read_frame_buffer: &<Gles<B> as yapgeir_graphics_hal::Graphics>::FrameBuffer,
-        _source: Rect<u32>,
-        _destination: Rect<u32>,
-        _filter: yapgeir_graphics_hal::sampler::Filter,
+        read_frame_buffer: &GlesFrameBuffer<B>,
+        source: Rect<u32>,
+        destination: Rect<u32>,
+        flip_source: FlipSource,
+        filter: Filter,
     ) {
-        unimplemented!("Not there yet")
+        let read = match &read_frame_buffer.res {
+            Resources::Default => {
+                panic!("Reading from a default framebuffer is unsupported!");
+            }
+            Resources::Managed {
+                size,
+                framebuffer,
+                _draw_texture: tex,
+                _depth_stencil,
+            } => (
+                size.clone(),
+                framebuffer.clone(),
+                ReadSource::Texture(tex.texture),
+            ),
+        };
+
+        let fb_write = self.res.framebuffer(&self.ctx);
+
+        unsafe {
+            self.ctx.frame_buffer_blitter.blit(
+                &mut self.ctx.get_ref(),
+                fb_write,
+                read,
+                BlitSourceRect::Pixel(source, flip_source),
+                destination,
+                filter,
+            )
+        };
     }
 
     fn read(&self, rect: Rect<u32>, format: GlesReadFormat, target: &mut [u8]) {
@@ -320,7 +312,6 @@ impl<B: WindowBackend + 'static> FrameBuffer<Gles<B>> for GlesFrameBuffer<B> {
             );
         }
     }
-
 }
 
 fn draw_impl<'a, B: WindowBackend>(
@@ -417,14 +408,12 @@ fn bind_textures<'a, B: WindowBackend + 'a>(
 ) {
     let mut used_units = BitArray::<u32>::new(0u32);
     let mut shader_state = shader.state.borrow_mut();
-    let mut no_free_units = false;
 
     for binding in textures {
         bind_texture(
             ctx,
             &mut used_units,
             &mut shader_state,
-            &mut no_free_units,
             binding.name,
             binding.sampler.state,
             binding.sampler.texture.borrow(),
@@ -432,11 +421,42 @@ fn bind_textures<'a, B: WindowBackend + 'a>(
     }
 }
 
+fn reuse_texture_unit(
+    ctx: &mut GlesContextRef,
+    unit: usize,
+    texture: glow::Texture,
+    sampler: SamplerState,
+    used_units: &mut BitArray<u32>,
+) -> bool {
+    let unit_data = &ctx.state.texture_units[unit];
+
+    if unit_data.texture != Some(texture) {
+        return false;
+    }
+
+    if unit_data.sampler == sampler {
+        used_units.set(unit, true);
+        return true;
+    }
+
+    // A sampler can be changed only if its location is not used by another binding for this draw call.
+    // This allows binding same texture with different samplers, if sampler objects are supported.
+    let can_reuse = !ctx.extensions.sampler_objects
+        || !used_units.get(unit).as_deref().cloned().unwrap_or(false);
+
+    if can_reuse {
+        ctx.bind_sampler(unit as u32, sampler);
+        used_units.set(unit, true);
+        return true;
+    }
+
+    false
+}
+
 fn bind_texture<B: WindowBackend>(
     ctx: &mut GlesContextRef,
     used_units: &mut BitArray<u32>,
     shader_state: &mut ShaderState,
-    no_free_units: &mut bool,
 
     name: &str,
     sampler: SamplerState,
@@ -448,63 +468,45 @@ fn bind_texture<B: WindowBackend>(
         None => return,
     };
 
-    // Check if no binding is necessary
-    {
-        let unit: usize = *cached_unit as usize;
-        let unit_data = &ctx.state.texture_units[unit];
-        if unit_data.texture == Some(texture.texture) {
-            if unit_data.sampler == sampler {
-                used_units.set(unit, true);
-                return;
-            }
+    // Check if no re-binding is necessary
+    if reuse_texture_unit(ctx, *cached_unit, texture.texture, sampler, used_units) {
+        return;
+    }
 
-            // A sampler can be changed only if its location is not used by another binding for this draw call.
-            // This allows binding same texture with different samplers, if sampler objects are supported.
+    let mut empty_unit = None;
+    let mut overridable_unit = None;
 
-            let can_reuse = !ctx.extensions.sampler_objects
-                || !used_units.get(unit).as_deref().cloned().unwrap_or(false);
+    for unit in 0..ctx.state.texture_unit_limit {
+        if empty_unit == None && ctx.state.texture_units[unit].texture.is_none() {
+            empty_unit = Some(unit);
+            continue;
+        }
 
-            if can_reuse {
-                used_units.set(unit, true);
-                ctx.bind_sampler(unit as u32, sampler);
-                return;
-            }
+        if overridable_unit == None && used_units.get(unit).as_deref().cloned().unwrap_or(false) {
+            overridable_unit = Some(unit);
+        }
+
+        if reuse_texture_unit(ctx, unit, texture.texture, sampler, used_units) {
+            unsafe { ctx.gl.uniform_1_i32(Some(&location), unit as i32) };
+            *cached_unit = unit;
+            return;
         }
     }
 
-    let unit = if *no_free_units {
-        None
-    } else {
-        let free_unit = (0..ctx.state.texture_unit_limit)
-            .find(|&i| ctx.state.texture_units[i].texture.is_none());
-        if free_unit == None {
-            *no_free_units = true;
+    // Prefer empty unit over overridable unit
+    match empty_unit.or(overridable_unit) {
+        Some(unit) => unsafe {
+            ctx.bind_texture(unit as u32, Some(texture.texture));
+            ctx.bind_sampler(unit as u32, sampler);
+            used_units.set(unit, true);
+
+            ctx.gl.uniform_1_i32(Some(&location), unit as i32);
+            *cached_unit = unit;
+        },
+        None => {
+            panic!("Trying to bind more textures than there are slots");
         }
-
-        free_unit
-    };
-
-    // Find an unused slot and bind texture and sampler there.
-    let unit = unit
-        .or_else(|| {
-            (0..ctx.state.texture_unit_limit)
-                .find(|&i| !used_units.get(i).as_deref().cloned().unwrap_or(false))
-        })
-        .expect("Trying to bind more textures than there are slots");
-
-    unsafe {
-        ctx.activate_texture_unit(unit as u32);
-        ctx.gl.bind_texture(glow::TEXTURE_2D, Some(texture.texture));
-        ctx.state.texture_units[unit].texture = Some(texture.texture);
-        ctx.bind_sampler(unit as u32, sampler);
-
-        ctx.gl.uniform_1_i32(Some(&location), unit as i32);
     }
-
-    // Update shader's unit cache
-    *cached_unit = unit as u8;
-    // Mark the new slot as used
-    used_units.set(unit, true);
 }
 
 fn bind_uniforms<'a, B: WindowBackend>(

@@ -1674,6 +1674,7 @@ version = "0.1.0"
 dependencies = [
  "bevy_reflect",
  "derive_more",
+ "hecs",
  "yapgeir_realm",
 ]
 

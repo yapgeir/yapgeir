@@ -5,21 +5,8 @@ use derive_more::Constructor;
 
 use crate::{
     draw_params::DrawParameters, index_buffer::PrimitiveMode, sampler::Filter,
-    samplers::SamplerAttribute, uniforms::Uniforms, Graphics, Size, Rect, Rgba,
+    samplers::SamplerAttribute, uniforms::Uniforms, Graphics, Rect, Rgba, Size,
 };
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum RenderBufferFormat {
-    Depth,
-    Stencil,
-    DepthStencil,
-}
-
-pub trait RenderBuffer<G: Graphics> {
-    type Format;
-
-    fn new(renderer: G, size: Size<u32>, format: Self::Format) -> Self;
-}
 
 pub enum Attachment<G: Graphics> {
     Texture(Rc<G::Texture>),
@@ -56,6 +43,13 @@ pub struct Indices {
     pub mode: PrimitiveMode,
     pub offset: usize,
     pub len: usize,
+}
+
+pub enum FlipSource {
+    None,
+    X,
+    Y,
+    XY,
 }
 
 pub trait FrameBuffer<G: Graphics> {
@@ -131,12 +125,14 @@ pub trait FrameBuffer<G: Graphics> {
     /// * `read_frame_buffer` - a frame buffer which draw texture will be copied.
     /// * `source` - specifies the bounds of the source rectangle within the `read_frame_buffer`.
     /// * `destination` - specifies the bounds of the destination rectangle within thr target frame buffer.
-    /// * ``
+    /// * `flip` - allows doing a horizontal and/or a vertical flip of the source image.
+    /// * `filter` - specifies the filter that will be used when sampling the source texture.
     fn blit(
         &self,
         read_frame_buffer: &G::FrameBuffer,
         source: Rect<u32>,
         destination: Rect<u32>,
+        flip_source: FlipSource,
         filter: Filter,
     );
 

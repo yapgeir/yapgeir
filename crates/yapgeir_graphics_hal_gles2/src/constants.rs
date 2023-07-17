@@ -3,8 +3,8 @@ use yapgeir_graphics_hal::{
     draw_params::{
         BlendingEquation, BlendingFactor, CullFaceMode, DepthStencilTest, StencilActionMode,
     },
-    frame_buffer::RenderBufferFormat,
     index_buffer::{IndexKind, PrimitiveMode},
+    render_buffer::RenderBufferFormat,
     sampler::{Filter, MinFilter, WrapFunction},
     vertex_buffer::AttributeKind,
 };

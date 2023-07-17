@@ -5,19 +5,19 @@ use bytemuck::Pod;
 use context::GlesContext;
 use derive_more::Deref;
 use draw_descriptor::GlesDrawDescriptor;
-use fake_default_framebuffer::ScreenFlipper;
-use frame_buffer::{GlesFrameBuffer, GlesRenderBuffer};
+use frame_buffer::GlesFrameBuffer;
+use render_buffer::GlesRenderBuffer;
 use shader::GlesShader;
 use smart_default::SmartDefault;
 use texture::GlesTexture;
 use uniforms::GlesUniformBuffer;
 use yapgeir_graphics_hal::{
-    buffer::BufferUsage, frame_buffer::RenderBufferFormat, Graphics, WindowBackend,
+    buffer::BufferUsage, render_buffer::RenderBufferFormat, Graphics, WindowBackend,
 };
 
+pub use frame_buffer::GlesReadFormat;
 /// Re-export extended variants of the default enums
 pub use texture::GlesPixelFormat;
-pub use frame_buffer::GlesReadFormat;
 
 mod buffer;
 mod constants;
@@ -25,6 +25,8 @@ mod context;
 mod draw_descriptor;
 mod fake_default_framebuffer;
 mod frame_buffer;
+mod frame_buffer_blitter;
+mod render_buffer;
 mod samplers;
 mod shader;
 mod texture;
@@ -42,20 +44,12 @@ pub struct GlesSettings {
     /// This is done to conform to the coordinate system of graphics-hal, which is
     /// Y up for NDC, and Y down for frame buffers and textures.
     #[default(true)]
-    pub flip_default_framebuffer: bool,
+    pub flip_default_frame_buffer: bool,
 }
 
 impl<B: WindowBackend> Gles<B> {
     pub fn new_with_settings(backend: B, settings: GlesSettings) -> Self {
-        let flip_default_framebuffer = settings.flip_default_framebuffer;
-        let mut ctx = unsafe { GlesContext::new(backend, settings) };
-
-        if flip_default_framebuffer {
-            let screen_flipper = unsafe { ScreenFlipper::new(&mut ctx.get_ref(), ctx.default_framebuffer_size()) };
-            ctx.screen_flipper = Some(screen_flipper);
-        }
-
-        Self(Rc::new(ctx))
+        Self(Rc::new(unsafe { GlesContext::new(backend, settings) }))
     }
 }
 
@@ -86,8 +80,12 @@ impl<B: WindowBackend + 'static> Graphics for Gles<B> {
     fn swap_buffers(&self) {
         let mut ctx = self.get_ref();
 
-        if let Some(screen_flipper) = &self.screen_flipper {
-            unsafe { screen_flipper.blit(&mut ctx) };
+        if let Some(fake_default_frame_buffer) = &self.fake_default_frame_buffer {
+            unsafe {
+                fake_default_frame_buffer
+                    .borrow()
+                    .blit(&mut ctx, &self.frame_buffer_blitter)
+            };
         }
 
         ctx.bind_frame_buffer(None);

@@ -1,4 +1,4 @@
-use std::cell::{RefCell, RefMut, Cell};
+use std::cell::{Cell, RefCell, RefMut};
 
 use derive_more::Constructor;
 use enum_map::EnumMap;
@@ -8,14 +8,12 @@ use yapgeir_graphics_hal::{
     buffer::BufferKind,
     draw_params::{Blend, CullFaceMode, Depth, PolygonOffset, Stencil, StencilCheck},
     sampler::SamplerState,
-    Size, Rect, Rgba, WindowBackend,
+    Rect, Rgba, Size, WindowBackend,
 };
 
 use crate::{
-    constants::GlConstant,
-    fake_default_framebuffer::ScreenFlipper,
-    samplers::Samplers,
-    GlesSettings,
+    constants::GlConstant, fake_default_framebuffer::FakeDefaultFrameBuffer,
+    frame_buffer_blitter::FrameBufferBlitter, samplers::Samplers, GlesSettings,
 };
 
 pub const MAX_TEXTURES: usize = 32;
@@ -104,6 +102,7 @@ pub struct GlesState {
 pub struct Extensions {
     pub vertex_array_objects: bool,
     pub sampler_objects: bool,
+    pub blit_framebuffer: bool,
 }
 
 pub struct GlesContext<B: WindowBackend> {
@@ -113,7 +112,9 @@ pub struct GlesContext<B: WindowBackend> {
     pub default_framebuffer_size: Cell<Option<Size<u32>>>,
     pub extensions: Extensions,
     pub settings: GlesSettings,
-    pub screen_flipper: Option<ScreenFlipper>,
+
+    pub fake_default_frame_buffer: Option<RefCell<FakeDefaultFrameBuffer>>,
+    pub frame_buffer_blitter: FrameBufferBlitter,
 }
 
 impl<B: WindowBackend> Drop for GlesContext<B> {
@@ -127,9 +128,11 @@ impl<B: WindowBackend> Drop for GlesContext<B> {
             state.samplers.drain(&self.gl);
         }
 
-        if let Some(screen_flipper) = &self.screen_flipper {
-            unsafe { screen_flipper.drop_all(&self.gl) };
+        if let Some(fake_default_frame_buffer) = &self.fake_default_frame_buffer {
+            unsafe { fake_default_frame_buffer.borrow().destroy(&self.gl) };
         }
+
+        unsafe { self.frame_buffer_blitter.destroy(&self.gl) };
     }
 }
 
@@ -140,7 +143,7 @@ impl<B: WindowBackend> GlesContext<B> {
 
         // Reserve one texture unit for a fake framebuffer
         // TODO: check if we can use blitFramebuffer instead of a shader in the final stage
-        if settings.flip_default_framebuffer {
+        if settings.flip_default_frame_buffer {
             texture_unit_limit -= 1;
         }
 
@@ -148,23 +151,47 @@ impl<B: WindowBackend> GlesContext<B> {
         gl.pixel_store_i32(glow::UNPACK_ALIGNMENT, 1);
 
         let extensions = gl.supported_extensions();
+        let extensions = Extensions {
+            vertex_array_objects: extensions.contains("GL_OES_vertex_array_object"),
+            sampler_objects: extensions.contains("GL_ARB_sampler_objects"),
+            blit_framebuffer: extensions.contains("GL_EXT_framebuffer_blit"),
+        };
+
+        let default_framebuffer_size = backend.default_frame_buffer_size();
+
+        let state = RefCell::new(GlesState {
+            texture_unit_limit,
+            ..Default::default()
+        });
+
+        let (frame_buffer_blitter, fake_default_frame_buffer) = {
+            let mut ctx = GlesContextRef {
+                gl: &gl,
+                state: state.borrow_mut(),
+                extensions: &extensions,
+            };
+
+            let frame_buffer_blitter = FrameBufferBlitter::new(&mut ctx);
+
+            let fake_default_frame_buffer = match settings.flip_default_frame_buffer {
+                true => Some(RefCell::new(unsafe {
+                    FakeDefaultFrameBuffer::new(&mut ctx, default_framebuffer_size)
+                })),
+                false => None,
+            };
+
+            (frame_buffer_blitter, fake_default_frame_buffer)
+        };
 
         Self {
-            backend,
-            state: {
-                RefCell::new(GlesState {
-                    texture_unit_limit,
-                    ..Default::default()
-                })
-            },
-            extensions: Extensions {
-                vertex_array_objects: extensions.contains("GL_OES_vertex_array_object"),
-                sampler_objects: extensions.contains("GL_ARB_sampler_objects"),
-            },
-            settings,
-            default_framebuffer_size: Cell::new(None),
-            screen_flipper: None,
             gl,
+            backend,
+            state,
+            extensions,
+            settings,
+            default_framebuffer_size: Cell::new(Some(default_framebuffer_size)),
+            fake_default_frame_buffer,
+            frame_buffer_blitter,
         }
     }
 
@@ -187,7 +214,6 @@ impl<B: WindowBackend> GlesContext<B> {
         }
     }
 }
-
 
 pub struct GlesContextRef<'a> {
     pub gl: &'a glow::Context,
@@ -406,6 +432,14 @@ impl<'a> GlesContextRef<'a> {
         if self.state.active_texture_unit != unit {
             unsafe { self.gl.active_texture(glow::TEXTURE0 + unit) };
             self.state.active_texture_unit = unit;
+        }
+    }
+
+    pub fn bind_texture(&mut self, unit: u32, texture: Option<glow::Texture>) {
+        if self.state.texture_units[unit as usize].texture != texture {
+            self.activate_texture_unit(unit);
+            unsafe { self.gl.bind_texture(glow::TEXTURE_2D, texture) };
+            self.state.texture_units[unit as usize].texture = texture;
         }
     }
 
