@@ -32,6 +32,11 @@ pub fn num_vector_ui<T: Numeric, const N: usize>(
     ui.horizontal(|ui| num_row_ui(value, ui, id));
 }
 
+pub fn bool_ui(value: &mut dyn Any, ui: &mut egui::Ui, _: egui::Id) {
+    let value = value.downcast_mut::<bool>().unwrap();
+    ui.checkbox(value, "");
+}
+
 pub fn number_ui<T: egui::emath::Numeric>(value: &mut dyn Any, ui: &mut egui::Ui, _: egui::Id) {
     let value = value.downcast_mut::<T>().unwrap();
 

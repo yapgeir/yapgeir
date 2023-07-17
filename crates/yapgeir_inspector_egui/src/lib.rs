@@ -95,7 +95,7 @@ fn variant_constructable<'a>(
 fn construct_default_variant(
     type_registry: &TypeRegistry,
     variant: &VariantInfo,
-    ui: &mut egui::Ui,
+    _: &mut egui::Ui,
 ) -> Result<DynamicEnum, ()> {
     let dynamic_variant = match variant {
         VariantInfo::Struct(struct_info) => {
@@ -152,7 +152,6 @@ pub fn ui_for_reflect_mut(
             // it means we are processing a data type for which a ui representation
             // was not
         }
-        _ => {}
     };
 }
 
@@ -237,7 +236,7 @@ fn ui_for_reflect_map(
         for (i, (key, value)) in map.iter().enumerate() {
             // FIXME: get change tracking back
             let mut key = key.clone_value();
-            let mut value = key.clone_value();
+            let mut value = value.clone_value();
 
             ui_for_reflect(type_registry, key.as_mut(), ui, id.with(i));
             ui_for_reflect(type_registry, value.as_mut(), ui, id.with(i));
@@ -271,7 +270,6 @@ fn ui_for_enum(
             changed = true;
             value.apply(&dynamic_enum);
         }
-        let variant_index = value.variant_index();
 
         let always_show_label = matches!(value.variant_type(), VariantType::Struct);
 
@@ -400,6 +398,7 @@ fn initialize(mut reflection: ResMut<Reflection>) {
     add::<String>(tr, primitives::string_ui);
     add::<Cow<str>>(tr, primitives::cow_str_ui);
 
+    add::<bool>(tr, primitives::bool_ui);
     add::<f32>(tr, primitives::number_ui::<f32>);
     add::<f64>(tr, primitives::number_ui::<f64>);
     add::<i8>(tr, primitives::number_ui::<i8>);

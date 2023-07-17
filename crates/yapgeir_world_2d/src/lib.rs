@@ -84,9 +84,10 @@ pub struct Dirty;
 pub struct WorldCamera(pub Matrix3<f32>);
 
 /// Defines if a mesh should be flipped alongside it's X or Y axis.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "reflection", derive(Reflect))]
 pub enum Flip {
+    #[default]
     X,
     Y,
 }
