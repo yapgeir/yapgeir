@@ -1469,17 +1469,22 @@ dependencies = [
 name = "yapgeir"
 version = "0.1.0"
 dependencies = [
+ "derive_more",
+ "egui",
  "hecs",
  "nalgebra",
  "rand",
  "yapgeir_assets",
  "yapgeir_core",
+ "yapgeir_egui_sdl",
  "yapgeir_events",
  "yapgeir_graphics_hal",
  "yapgeir_graphics_hal_gles2",
  "yapgeir_input",
+ "yapgeir_inspector_egui",
  "yapgeir_physics_2d",
  "yapgeir_realm",
+ "yapgeir_reflection",
  "yapgeir_renderer_2d",
  "yapgeir_sdl",
  "yapgeir_sdl_graphics",
@@ -1622,6 +1627,8 @@ name = "yapgeir_inspector_egui"
 version = "0.1.0"
 dependencies = [
  "egui",
+ "hecs",
+ "yapgeir_core",
  "yapgeir_realm",
  "yapgeir_reflection",
 ]

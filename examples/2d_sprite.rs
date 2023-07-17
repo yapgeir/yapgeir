@@ -1,9 +1,11 @@
 use std::ops::Deref;
 
+use derive_more::{Deref, DerefMut};
 use hecs::World;
-use nalgebra::{Matrix3, Vector2};
+use nalgebra::Matrix3;
 use yapgeir_assets::png::decode_png;
-use yapgeir_core::{Delta, WindowSize};
+use yapgeir_core::{Delta, ScreenPpt, WindowSize};
+use yapgeir_egui_sdl::{EguiRenderer, Gui};
 use yapgeir_events::Events;
 use yapgeir_graphics_hal::{
     frame_buffer::FrameBuffer, sampler::Sampler, texture::PixelFormat, Graphics,
@@ -14,7 +16,12 @@ use yapgeir_input::{
     mouse::{MouseButton, MouseButtonEvent},
     Axial,
 };
+use yapgeir_inspector_egui::draw_entity;
 use yapgeir_realm::{Realm, Res, ResMut};
+use yapgeir_reflection::{
+    bevy_reflect::{self, Reflect},
+    RealmExtensions, Reflection,
+};
 use yapgeir_renderer_2d::{
     quad_index_buffer::QuadIndexBuffer,
     sprite_renderer::{DrawRegion, SpriteRenderer, TextureRegion},
@@ -27,6 +34,9 @@ pub type GraphicsAdapter = Gles<SdlWindowBackend>;
 
 fn main() {
     yapgeir_realm::Realm::default()
+        .add_plugin(yapgeir_inspector_egui::plugin)
+        .register_type::<Position>()
+        .register_type::<Velocity>()
         // Creates SDL window, initializes input, Delta and Frame.
         .add_plugin(yapgeir_sdl::plugin(SdlSettings {
             window_size: WindowSize::new(600, 400),
@@ -36,20 +46,22 @@ fn main() {
         .add_plugin(yapgeir_core::frame_stats::plugin)
         // Creates graphics context (in this case GLES2)
         .add_plugin(yapgeir_sdl_graphics::plugin::<GraphicsAdapter>)
-        // Adds ECS as a resource
+        .add_plugin(yapgeir_egui_sdl::plugin::<GraphicsAdapter, _, _>(
+            egui_update,
+        ))
         .initialize_resource::<World>()
         // Initializes entities in ECS
         .run_system(|mut world: ResMut<World>| {
-            for _ in 0..1000 {
+            for _ in 0..4 {
                 world.spawn((
-                    Position(Vector2::new(
+                    Position([
                         rand::random::<f32>() * 200. - 100.,
                         rand::random::<f32>() * 200. - 100.,
-                    )),
-                    Velocity(Vector2::new(
+                    ]),
+                    Velocity([
                         rand::random::<f32>() * 600. - 300.,
                         rand::random::<f32>() * 600. - 300.,
-                    )),
+                    ]),
                 ));
             }
         })
@@ -62,26 +74,27 @@ fn main() {
         .run();
 }
 
-#[derive(Debug, Clone, Copy)]
-struct Position(Vector2<f32>);
+#[derive(Debug, Default, Clone, Copy, Deref, DerefMut, Reflect)]
+struct Position([f32; 2]);
 
-#[derive(Debug)]
-struct Velocity(Vector2<f32>);
+#[derive(Debug, Default, Clone, Copy, Deref, DerefMut, Reflect)]
+struct Velocity([f32; 2]);
 
 fn move_tile(mut world: ResMut<World>, delta: Res<Delta>, window_size: Res<WindowSize>) {
     for (_, (position, velocity)) in world.query_mut::<(&mut Position, &mut Velocity)>() {
-        position.0 += velocity.0 * delta.0;
+        position[0] += velocity[0] * delta.0;
+        position[1] += velocity[1] * delta.0;
 
-        if position.0.x > window_size.w as f32 / 2. {
-            velocity.0.x = -1. * velocity.0.x.abs();
-        } else if position.0.x < -(window_size.w as f32 / 2.) {
-            velocity.0.x = velocity.0.x.abs();
+        if position[0] > window_size.w as f32 / 2. {
+            velocity[0] = -1. * velocity[0].abs();
+        } else if position.0[0] < -(window_size.w as f32 / 2.) {
+            velocity[0] = velocity[0].abs();
         }
 
-        if position.0.y > window_size.h as f32 / 2. {
-            velocity.0 = -1. * velocity.0.abs();
-        } else if position.0.y < -(window_size.h as f32 / 2.) {
-            velocity.0 = velocity.0.abs();
+        if position[1] > window_size.h as f32 / 2. {
+            velocity[1] = -1. * velocity[1].abs();
+        } else if position[1] < -(window_size.h as f32 / 2.) {
+            velocity[1] = velocity[1].abs();
         }
     }
 }
@@ -90,7 +103,7 @@ fn window_to_world(position: Axial<i32>, window_size: WindowSize) -> Position {
     let x = position.x as f32 - (window_size.w as f32 / 2.);
     let y = -(position.y as f32 - (window_size.h as f32 / 2.));
 
-    Position(Vector2::new(x, y))
+    Position([x, y])
 }
 
 fn spawn_tile_on_left_click(
@@ -106,20 +119,20 @@ fn spawn_tile_on_left_click(
         let position = window_to_world(e.coordinate, *window_size);
         world.spawn((
             position,
-            Velocity(Vector2::new(
+            Velocity([
                 rand::random::<f32>() * 200. - 100.,
                 rand::random::<f32>() * 600. - 300.,
-            )),
+            ]),
         ));
     }
 }
 
 fn is_in_rectangle(center: Position, point: Position, side_length: f32) -> bool {
     let half_side = side_length / 2.0;
-    if point.0.x < center.0.x - half_side || point.0.x > center.0.x + half_side {
+    if point[0] < center[0] - half_side || point[0] > center[0] + half_side {
         return false;
     }
-    if point.0.y < center.0.y - half_side || point.0.y > center.0.y + half_side {
+    if point[1] < center[1] - half_side || point[1] > center[1] + half_side {
         return false;
     }
     true
@@ -165,11 +178,37 @@ fn initialize_rendering<G: Graphics>(realm: &mut Realm) {
         .add_system(render::<G>);
 }
 
+fn egui_update(
+    mut gui: ResMut<Gui>,
+    mut mouse: ResMut<Events<MouseButtonEvent>>,
+    reflection: Res<Reflection>,
+    world: Res<World>,
+) {
+    let ctx = gui.context();
+
+    if ctx.is_pointer_over_area() {
+        mouse.clear();
+    }
+
+    egui::Window::new("Entities")
+        .min_width(200.)
+        .default_width(200.)
+        .scroll2([false, true])
+        .show(&ctx, |ui| {
+            for entity in world.iter() {
+                draw_entity(&reflection, ui, entity);
+            }
+            ui.allocate_space(ui.available_size());
+        });
+}
+
 fn render<G: Graphics>(
     mut sprite_renderer: ResMut<SpriteRenderer<G>>,
+    mut gui: Option<ResMut<EguiRenderer<G>>>,
     graphics: Res<G>,
     texture: Res<G::Texture>,
     world: Res<World>,
+    screen_ppt: Res<ScreenPpt>,
 ) {
     let fb = graphics.default_frame_buffer();
     fb.clear(
@@ -179,6 +218,7 @@ fn render<G: Graphics>(
         None,
     );
 
+    // Draw sprites
     sprite_renderer.batch(
         &fb,
         Matrix3::identity().into(),
@@ -186,14 +226,15 @@ fn render<G: Graphics>(
         Sampler::nearest(&texture),
         |batch| {
             for (_, tile) in world.query::<&Position>().iter() {
-                batch.draw_sprite(
-                    DrawRegion::Point(tile.0.cast().into()),
-                    TextureRegion::Full,
-                    0,
-                );
+                batch.draw_sprite(DrawRegion::Point(tile.0), TextureRegion::Full, 0);
             }
         },
     );
+
+    // Draw egui
+    if let Some(gui) = gui.as_mut() {
+        yapgeir_egui_sdl::render(gui, &fb, screen_ppt.to_owned());
+    }
 
     graphics.swap_buffers();
 }

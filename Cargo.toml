@@ -89,9 +89,14 @@ yapgeir_events = { path = "crates/yapgeir_events" }
 yapgeir_world_2d = { path = "crates/yapgeir_world_2d" }
 yapgeir_world_2d_sprites = { path = "crates/yapgeir_world_2d_sprites" }
 yapgeir_physics_2d = { path = "crates/yapgeir_physics_2d" }
+yapgeir_egui_sdl = { path = "crates/yapgeir_egui_sdl" }
+yapgeir_inspector_egui = { path = "crates/yapgeir_inspector_egui" }
+yapgeir_reflection = { path = "crates/yapgeir_reflection" }
 nalgebra.workspace = true
 hecs.workspace = true
 rand.workspace = true
+egui.workspace = true
+derive_more.workspace = true
 
 [[example]]
 name="2d_sprite"

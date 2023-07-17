@@ -1,8 +1,6 @@
 use std::{any::TypeId, collections::HashMap, marker::PhantomData};
 
-use bevy_reflect::{
-    std_traits::ReflectDefault, GetTypeRegistration, Reflect, ReflectMut, TypeRegistry,
-};
+use bevy_reflect::{std_traits::ReflectDefault, GetTypeRegistration, Reflect, TypeRegistry};
 use derive_more::Deref;
 use hecs::{Component, EntityRef};
 use yapgeir_realm::{resource_exists, IntoFilteredSystem, Realm, ResMut};
@@ -16,16 +14,15 @@ pub struct Reflection {
 }
 
 pub trait ComponentVisitor {
-    fn visit<'a>(&self, entity: EntityRef, visitor: Box<dyn FnMut(ReflectMut) + 'a>);
+    fn visit<'a>(&self, entity: EntityRef, visitor: Box<dyn FnMut(&mut dyn Reflect) + 'a>);
 }
 
 struct TypedComponentVisitor<T>(PhantomData<T>);
 
 impl<T: Reflect> ComponentVisitor for TypedComponentVisitor<T> {
-    fn visit<'a>(&self, entity: EntityRef, mut visitor: Box<dyn FnMut(ReflectMut) + 'a>) {
+    fn visit<'a>(&self, entity: EntityRef, mut visitor: Box<dyn FnMut(&mut dyn Reflect) + 'a>) {
         let mut component = entity.get::<&mut T>().unwrap();
-        let reflect = component.reflect_mut();
-        visitor(reflect);
+        visitor(component.as_reflect_mut());
     }
 }
 

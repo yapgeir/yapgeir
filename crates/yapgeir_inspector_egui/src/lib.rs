@@ -8,7 +8,9 @@ use std::{
     time::Duration,
 };
 
-use egui::{CollapsingHeader, Grid};
+use egui::{CollapsingHeader, Grid, Ui};
+use hecs::EntityRef;
+use yapgeir_core::Named;
 use yapgeir_realm::{Realm, ResMut};
 use yapgeir_reflection::{
     bevy_reflect::{
@@ -132,27 +134,50 @@ fn construct_default_variant(
     Ok(dynamic_enum)
 }
 
-// TODO: register GuiElement for primitive types
-pub fn ui_for_reflect_mut(
-    type_registry: &TypeRegistry,
-    value: ReflectMut,
-    ui: &mut egui::Ui,
-    id: egui::Id,
+pub fn draw_entity(reflection: &Reflection, ui: &mut Ui, entity: EntityRef) {
+    let name = entity
+        .get::<&Named>()
+        .map(|n| format!("{} ({:?})", n.0, entity.entity()))
+        .unwrap_or_else(|| format!("Unnamed {:?}", entity.entity()));
+
+    CollapsingHeader::new(&name)
+        .default_open(true)
+        .id_source(entity.entity())
+        .show(ui, |ui| {
+            for type_id in entity.component_types() {
+                draw_component(reflection, ui, entity, type_id);
+            }
+        });
+}
+
+pub fn draw_component(reflection: &Reflection, ui: &mut Ui, entity: EntityRef, type_id: TypeId) {
+    draw_collapsing_type(reflection, ui, type_id, |ui| {
+        reflection.component_visitors.get(&type_id).unwrap().visit(
+            entity,
+            Box::new(|r| {
+                ui_for_reflect(&reflection.type_registry, r, ui, ui.next_auto_id());
+            }),
+        );
+    });
+}
+
+pub fn draw_collapsing_type(
+    reflection: &Reflection,
+    ui: &mut Ui,
+    type_id: TypeId,
+    draw: impl FnOnce(&mut Ui),
 ) {
-    match value {
-        ReflectMut::Struct(value) => ui_for_struct(type_registry, value, ui, id),
-        ReflectMut::TupleStruct(value) => ui_for_tuple_struct(type_registry, value, ui, id),
-        ReflectMut::Tuple(value) => ui_for_tuple(type_registry, value, ui, id),
-        ReflectMut::List(value) => ui_for_list(type_registry, value, ui, id),
-        ReflectMut::Array(value) => ui_for_array(type_registry, value, ui, id),
-        ReflectMut::Map(value) => ui_for_reflect_map(type_registry, value, ui, id),
-        ReflectMut::Enum(value) => ui_for_enum(type_registry, value, ui, id),
-        ReflectMut::Value(_) => {
-            // Values should be processed by s.fn_mut, if we get here,
-            // it means we are processing a data type for which a ui representation
-            // was not
+    match reflection.type_registry.get(type_id) {
+        Some(ty) => {
+            CollapsingHeader::new(ty.short_name())
+                .default_open(true)
+                .id_source(type_id)
+                .show(ui, draw);
         }
-    };
+        None => {
+            ui.label(format!("Unregistered type: {:?}", type_id));
+        }
+    }
 }
 
 /// Draw UI for any value that implements Reflect.
@@ -168,7 +193,20 @@ pub fn ui_for_reflect(
         return;
     }
 
-    ui_for_reflect_mut(type_registry, value.reflect_mut(), ui, id);
+    match value.reflect_mut() {
+        ReflectMut::Struct(value) => ui_for_struct(type_registry, value, ui, id),
+        ReflectMut::TupleStruct(value) => ui_for_tuple_struct(type_registry, value, ui, id),
+        ReflectMut::Tuple(value) => ui_for_tuple(type_registry, value, ui, id),
+        ReflectMut::List(value) => ui_for_list(type_registry, value, ui, id),
+        ReflectMut::Array(value) => ui_for_array(type_registry, value, ui, id),
+        ReflectMut::Map(value) => ui_for_reflect_map(type_registry, value, ui, id),
+        ReflectMut::Enum(value) => ui_for_enum(type_registry, value, ui, id),
+        ReflectMut::Value(_) => {
+            // Values should be processed by s.fn_mut, if we get here,
+            // it means we are processing a data type for which ui representation
+            // was not registered.
+        }
+    };
 }
 
 fn ui_for_list(type_registry: &TypeRegistry, list: &mut dyn List, ui: &mut egui::Ui, id: egui::Id) {

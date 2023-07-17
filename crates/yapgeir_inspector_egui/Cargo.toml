@@ -7,4 +7,6 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 yapgeir_reflection= { path = "../yapgeir_reflection" }
 yapgeir_realm = { path = "../yapgeir_realm" }
+yapgeir_core = { path = "../yapgeir_core" }
+hecs.workspace = true
 egui.workspace = true
