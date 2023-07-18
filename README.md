@@ -35,6 +35,11 @@ The engine currently supports wasm via `emscripten`. To compile your project, yo
         "-C", "link-arg=-s", "-C", "link-arg=USE_SDL=2",
         "-C", "link-arg=-s", "-C", "link-arg=MAX_WEBGL_VERSION=2",
         "-C", "link-arg=-s", "-C", "link-arg=MIN_WEBGL_VERSION=2",
+        # Optionally set these if you need huge heaps/stack
+        "-C", "link-arg=-s", "-C", "link-arg=MAXIMUM_MEMORY=4gb",
+        "-C", "link-arg=-s", "-C", "link-arg=ALLOW_MEMORY_GROWTH",
+        "-C", "link-arg=-s", "-C", "link-arg=TOTAL_STACK=16mb",
+        "-C", "link-arg=-s", "-C", "link-arg=INITIAL_MEMORY=64mb",
     ]
 
     [env]
