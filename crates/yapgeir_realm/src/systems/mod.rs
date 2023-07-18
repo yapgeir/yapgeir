@@ -95,6 +95,7 @@ macro_rules! impl_system {
             for<'r> F: FnMut($($params),*) -> R + FnMut($(<$params as SystemParam>::Item<'r>),*) -> R,
         {
             fn run(&mut self, resources: &mut Resources) -> R {
+                // println!("Running system {}", std::any::type_name::<F>());
                 self.0($(match $params::get(resources) {
                     Ok(r) => r,
                     Err(error) => panic!("Unable to inject resource into system {}.\n\t{}", std::any::type_name::<F>(), error),

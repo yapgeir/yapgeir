@@ -11,7 +11,7 @@ use yapgeir_graphics_hal::{
 #[cfg(not(target_os = "vita"))]
 const SHADER: TextShaderSource = TextShaderSource {
     vertex: r#"
-        #version 120
+        // #version 100
         
         uniform mat3 view_projection;
 
@@ -29,7 +29,8 @@ const SHADER: TextShaderSource = TextShaderSource {
         }
     "#,
     fragment: r#"
-        #version 120
+        // #version 100
+        precision highp float;
         
         varying vec4 o_color;
         

@@ -5,7 +5,7 @@ use hecs::World;
 use nalgebra::Matrix3;
 use yapgeir_assets::png::decode_png;
 use yapgeir_core::{Delta, ScreenPpt, WindowSize};
-use yapgeir_egui_sdl::{EguiRenderer, Gui};
+use yapgeir_egui_sdl::{Egui, EguiRenderer};
 use yapgeir_events::Events;
 use yapgeir_graphics_hal::{
     frame_buffer::FrameBuffer, sampler::Sampler, texture::PixelFormat, Graphics,
@@ -33,7 +33,9 @@ use yapgeir_sdl_graphics::SdlWindowBackend;
 pub type GraphicsAdapter = Gles<SdlWindowBackend>;
 
 fn main() {
-    yapgeir_realm::Realm::default()
+    let mut realm = Realm::default();
+
+    realm
         .add_plugin(yapgeir_inspector_egui::plugin)
         .register_type::<Position>()
         .register_type::<Velocity>()
@@ -70,8 +72,9 @@ fn main() {
         .add_system(spawn_tile_on_left_click)
         .add_system(despawn_tile_on_right_click)
         // Sets up resources for rendering pipeline, and a system that will do actual rendering
-        .add_plugin(initialize_rendering::<GraphicsAdapter>)
-        .run();
+        .add_plugin(initialize_rendering::<GraphicsAdapter>);
+
+    realm.run();
 }
 
 #[derive(Debug, Default, Clone, Copy, Deref, DerefMut, Reflect)]
@@ -179,7 +182,7 @@ fn initialize_rendering<G: Graphics>(realm: &mut Realm) {
 }
 
 fn egui_update(
-    mut gui: ResMut<Gui>,
+    mut gui: ResMut<Egui>,
     mut mouse: ResMut<Events<MouseButtonEvent>>,
     reflection: Res<Reflection>,
     world: Res<World>,

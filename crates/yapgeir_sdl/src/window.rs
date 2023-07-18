@@ -1,12 +1,15 @@
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
 use yapgeir_core::{ScreenPpt, WindowSize};
 use yapgeir_realm::{Plugin, Realm, Res, ResMut};
 
 use crate::SdlSettings;
 
-fn update_window_size(mut window_size: ResMut<WindowSize>, window: Res<Rc<sdl2::video::Window>>) {
-    let size: (u32, u32) = window.drawable_size();
+fn update_window_size(
+    mut window_size: ResMut<WindowSize>,
+    window: Res<Rc<RefCell<sdl2::video::Window>>>,
+) {
+    let size: (u32, u32) = window.borrow().drawable_size();
     window_size.w = size.0;
     window_size.h = size.1;
 }
@@ -43,7 +46,7 @@ pub fn plugin(settings: SdlSettings) -> impl Plugin {
             .add_resource(ppt)
             .add_resource(sdl)
             .add_resource(video)
-            .add_resource(Rc::new(window))
+            .add_resource(Rc::new(RefCell::new(window)))
             .add_resource(gl_context)
             .add_system(update_window_size);
     }

@@ -25,6 +25,45 @@ impl Default for Realm {
     }
 }
 
+#[cfg(target_os = "emscripten")]
+mod emscripten {
+    use std::cell::RefCell;
+
+    use crate::Realm;
+
+    type MainFunc = unsafe extern "C" fn();
+
+    thread_local!(static REALM: RefCell<Option<Realm>> = RefCell::new(None));
+
+    extern "C" {
+        fn emscripten_set_main_loop(
+            func: MainFunc,
+            fps: std::ffi::c_int,
+            simulate_infinite_loop: std::ffi::c_int,
+        );
+    }
+
+    pub fn run(realm: Realm) {
+        REALM.with(|r| {
+            *r.borrow_mut() = Some(realm);
+        });
+
+        unsafe {
+            emscripten_set_main_loop(wrapper, 0, 1);
+        }
+
+        unsafe extern "C" fn wrapper() {
+            REALM.with(|realm| {
+                let mut realm = realm.borrow_mut();
+                let realm = &mut realm.as_mut().unwrap();
+                realm.systems.run(&mut realm.resources);
+            });
+        }
+    }
+}
+
+mod spin {}
+
 impl Realm {
     #[inline]
     pub fn add_plugin(&mut self, plugin: impl Plugin) -> &mut Self {
@@ -71,7 +110,11 @@ impl Realm {
         self
     }
 
-    pub fn run(&mut self) {
+    pub fn run(mut self) {
+        #[cfg(target_os = "emscripten")]
+        emscripten::run(self);
+
+        #[cfg(not(target_os = "emscripten"))]
         loop {
             if !self.systems.run(&mut self.resources) {
                 break;

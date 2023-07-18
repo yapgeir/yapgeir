@@ -68,7 +68,10 @@ pub unsafe fn compile_program(gl: &glow::Context, source: &TextShaderSource) -> 
         gl.shader_source(shader, source);
         gl.compile_shader(shader);
         if !gl.get_shader_compile_status(shader) {
-            panic!("{}", gl.get_shader_info_log(shader));
+            panic!(
+                "Error compiling shader: {}. Shader: \n {source}",
+                gl.get_shader_info_log(shader)
+            );
         }
         gl.attach_shader(program, shader);
         shader

@@ -66,10 +66,10 @@ unsafe fn bind_texture(
 #[cfg(not(target_os = "vita"))]
 const SHADER: TextShaderSource = TextShaderSource {
     vertex: r#"
-        #version 120
+        // #version 100
 
-        uniform vec2[4] uv;
-        uniform vec2[4] tex_pos;
+        uniform vec2 uv[4];
+        uniform vec2 tex_pos[4];
 
         attribute float f_index;
         varying vec2 v_tex_position;
@@ -81,7 +81,8 @@ const SHADER: TextShaderSource = TextShaderSource {
         }
     "#,
     fragment: r#"
-        #version 120
+        // #version 100
+        precision highp float;
 
         uniform sampler2D tex;
 
@@ -95,8 +96,8 @@ const SHADER: TextShaderSource = TextShaderSource {
 #[cfg(target_os = "vita")]
 const SHADER: TextShaderSource = TextShaderSource {
     vertex: r#"
-        uniform float2[4] uv;
-        uniform float2[4] tex_pos;
+        uniform float2 uv[4];
+        uniform float2 tex_pos[4];
 
         void main(
             float f_index,

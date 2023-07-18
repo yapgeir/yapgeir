@@ -1,10 +1,10 @@
-use std::{ops::Deref, rc::Rc, time::Instant};
+use std::{ops::Deref, time::Instant};
 
 use egui_sdl2_platform::Platform;
 use yapgeir_core::ScreenPpt;
 use yapgeir_egui_painter::{EguiDrawData, EguiPainter};
 use yapgeir_events::Events;
-use yapgeir_graphics_hal::{Graphics, Size};
+use yapgeir_graphics_hal::{frame_buffer::FrameBuffer, Graphics, Size};
 use yapgeir_realm::{IntoSystem, Plugin, Realm, Res, ResMut, System};
 
 pub struct EguiRenderer<G: Graphics> {
@@ -12,18 +12,18 @@ pub struct EguiRenderer<G: Graphics> {
     data: EguiDrawData,
 }
 
-pub struct Gui {
+pub struct Egui {
     platform: Platform,
     start_time: Instant,
 }
 
-impl Gui {
+impl Egui {
     pub fn context(&mut self) -> egui::Context {
         self.platform.context()
     }
 }
 
-impl Gui {
+impl Egui {
     pub fn new(screen_size: Size<u32>, ppt: ScreenPpt) -> Self {
         let mut platform =
             Platform::new((screen_size.w, screen_size.h)).expect("Unable to create GUI");
@@ -38,7 +38,7 @@ impl Gui {
 
 #[cfg_attr(feature = "instrumentation", yapgeir_instrument::instrument)]
 fn process_input(
-    mut gui: ResMut<Gui>,
+    mut gui: ResMut<Egui>,
     sdl: Res<sdl2::Sdl>,
     video: Res<sdl2::VideoSubsystem>,
     events: Res<Events<sdl2::event::Event>>,
@@ -53,9 +53,9 @@ fn process_input(
     gui.platform.set_pixels_per_point(Some(**ppt));
 }
 
-#[cfg_attr(feature = "instrumentation", yapgeir_instrument::instrument)]
+// #[cfg_attr(feature = "instrumentation", yapgeir_instrument::instrument)]
 fn tesselate<G: Graphics>(
-    mut gui: ResMut<Gui>,
+    mut gui: ResMut<Egui>,
     mut renderer: ResMut<EguiRenderer<G>>,
     mut video: ResMut<sdl2::VideoSubsystem>,
 ) {
@@ -83,8 +83,8 @@ pub fn plugin<'a, G: Graphics, I, S: System<()> + 'static>(
 ) -> impl Plugin {
     move |realm: &mut Realm| {
         realm
-            .initialize_resource_with(|sdl: Res<Rc<sdl2::video::Window>>, ppt: Res<ScreenPpt>| {
-                Gui::new(sdl.drawable_size().into(), *ppt)
+            .initialize_resource_with(|ctx: Res<G>, ppt: Res<ScreenPpt>| {
+                Egui::new(ctx.default_frame_buffer().size().into(), *ppt)
             })
             .initialize_resource_with(|ctx: Res<G>| EguiRenderer {
                 painter: EguiPainter::new(ctx.deref()),

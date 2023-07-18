@@ -16,6 +16,7 @@
         "eabi",
         "egui",
         "emath",
+        "emscripten",
         "epaint",
         "framebuffer",
         "gamepad",

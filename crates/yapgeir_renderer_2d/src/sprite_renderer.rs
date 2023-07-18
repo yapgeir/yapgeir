@@ -24,7 +24,7 @@ use super::batch_renderer::BatchRenderer;
 #[cfg(not(target_os = "vita"))]
 const SHADER: TextShaderSource = TextShaderSource {
     vertex: r#"
-        #version 120
+        // #version 100
 
         uniform mat3 view_camera;
         uniform vec2 projection_scale;
@@ -51,7 +51,8 @@ const SHADER: TextShaderSource = TextShaderSource {
         }
     "#,
     fragment: r#"
-        #version 120
+        // #version 100
+        precision highp float;
 
         uniform sampler2D tex;
 

@@ -22,6 +22,41 @@ This project is under active development right now, so if you have accidentally 
 - There are no crates released. This engine is currently developed alongside a game where it is a submodule. The engine itself is used as a relative dependency.
 - Documentation is almost non-existent
 
+## Building for wasm
+
+The engine currently supports wasm via `emscripten`. To compile your project, you need
+
+- `emscripten` toolchain [installed](https://emscripten.org/docs/getting_started/downloads.html) on your system, and `emcc` available in your `$PATH`
+- Add Rust target - `rustup target add wasm32-unknown-emscripten`
+- Add `.cargo/config.toml` with the following contents:
+    ```toml
+    [target.wasm32-unknown-emscripten]
+    rustflags = [
+        "-C", "link-arg=-s", "-C", "link-arg=USE_SDL=2",
+        "-C", "link-arg=-s", "-C", "link-arg=MAX_WEBGL_VERSION=2",
+        "-C", "link-arg=-s", "-C", "link-arg=MIN_WEBGL_VERSION=2",
+    ]
+
+    [env]
+    # In order to load your assets, you must preload them. This line assumes all of your assets are in a `assets` folder and is read relatively to the binary
+    EMCC_CFLAGS = "--preload-file=assets"
+    ```
+- To run your project you will need to put an `index.html` file in the same place as your build artifacts:
+    ```html
+    <!DOCTYPE html>
+    <html>
+    <body>
+        <canvas data-raw-handle="1" id="canvas"></canvas>
+        <script type="text/javascript">
+        var Module = { canvas: document.getElementById("canvas") };
+        </script>
+        <!-- Rename src to your actual build artifact -->
+        <script src="game.js"></script>
+    </body>
+    </html>
+    ```
+- Run `cargo build --target=wasm32-unknown-emscripten --release` to build your project
+
 ## Examples
 
 * [2d_sprite](examples/2d_sprite.rs)

@@ -152,7 +152,9 @@ impl<B: WindowBackend> GlesContext<B> {
 
         let default_framebuffer_size = backend.default_frame_buffer_size();
 
-        let mut texture_unit_limit = gl.get_parameter_i32(glow::MAX_TEXTURE_IMAGE_UNITS) as usize;
+        let mut texture_unit_limit =
+            gl.get_parameter_i32(glow::MAX_TEXTURE_IMAGE_UNITS).min(32) as usize;
+
         // Reserve a texture unit for the fake default framebuffer
         if settings.flip_default_frame_buffer && !extensions.blit_framebuffer {
             texture_unit_limit -= 1;

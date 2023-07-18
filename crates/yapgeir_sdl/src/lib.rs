@@ -20,7 +20,10 @@ impl Default for SdlSettings {
         Self {
             title: "Hello, yapgeir!".into(),
             window_size: WindowSize::new(1920, 1080),
+            #[cfg(not(target_os = "emscripten"))]
             gl_profile: sdl2::video::GLProfile::Compatibility,
+            #[cfg(target_os = "emscripten")]
+            gl_profile: sdl2::video::GLProfile::GLES,
             depth_size: 16,
         }
     }

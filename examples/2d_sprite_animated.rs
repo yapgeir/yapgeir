@@ -32,7 +32,9 @@ use yapgeir_world_2d_sprites::animation::{AnimationSequenceKey, AnimationStorage
 pub type GraphicsAdapter = Gles<SdlWindowBackend>;
 
 fn main() {
-    yapgeir_realm::Realm::default()
+    let mut realm = Realm::default();
+
+    realm
         // Creates SDL window, initializes input, Delta and Frame.
         .add_plugin(yapgeir_sdl::plugin(SdlSettings {
             window_size: WindowSize::new(600, 400),
@@ -72,8 +74,9 @@ fn main() {
                     ),
                 );
             }
-        })
-        .run();
+        });
+
+    realm.run();
 }
 
 fn spawn_entity(world: &mut World, animations: &Animations, transform: Transform) {

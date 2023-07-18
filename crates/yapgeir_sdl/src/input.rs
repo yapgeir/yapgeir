@@ -1,4 +1,4 @@
-use std::{collections::HashMap, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use sdl2::{controller::Axis, event::WindowEvent};
 use sdl2::{controller::GameController, event::Event as SdlEvent};
@@ -69,7 +69,7 @@ fn update(
     mut ppt: ResMut<ScreenPpt>,
     mut mouse_button_events: ResMut<Events<MouseButtonEvent>>,
     events: Res<Events<SdlEvent>>,
-    window: Res<Rc<sdl2::video::Window>>,
+    window: Res<Rc<RefCell<sdl2::video::Window>>>,
 ) {
     for e in &**events {
         match e {
@@ -182,6 +182,7 @@ fn update(
                 win_event: WindowEvent::Moved(_, _),
                 ..
             } => {
+                let window = window.borrow();
                 ppt.0 = window.drawable_size().0 as f32 / window.size().0 as f32;
             }
             _ => {}
