@@ -96,21 +96,24 @@ fn spawn_entity(world: &mut World, animations: &Animations, transform: Transform
 }
 
 fn flip_direction(mut world: ResMut<World>, window_size: Res<WindowSize>) {
+    let half_w = window_size.w as f32 / 2.;
+    let half_h = window_size.h as f32 / 2.;
+
     for (_, (transform, kinematic_body)) in
         world.query_mut::<(&mut Transform, &mut KinematicBody)>()
     {
         let translation = &mut transform.isometry.translation;
         let velocity = &mut kinematic_body.velocity;
 
-        if translation.x > window_size.w as f32 / 2. {
+        if translation.x > half_w {
             velocity.x = -1. * velocity.x.abs();
-        } else if translation.x < -(window_size.w as f32 / 2.) {
+        } else if translation.x < -half_w {
             velocity.x = velocity.x.abs();
         }
 
-        if translation.y > window_size.h as f32 / 2. {
+        if translation.y > half_h {
             velocity.y = -1. * velocity.y.abs();
-        } else if translation.y < -(window_size.h as f32 / 2.) {
+        } else if translation.y < -half_h {
             velocity.y = velocity.y.abs();
         }
     }
