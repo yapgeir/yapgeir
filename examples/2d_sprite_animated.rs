@@ -31,6 +31,8 @@ use yapgeir_world_2d_sprites::animation::{AnimationSequenceKey, AnimationStorage
 
 pub type GraphicsAdapter = Gles<SdlWindowBackend>;
 
+const BATCH: usize = 5_000;
+
 fn main() {
     let mut realm = Realm::default();
 
@@ -61,7 +63,7 @@ fn main() {
         .add_plugin(initialize_animations)
         // Initializes entities in ECS
         .run_system(|mut world: ResMut<World>, animations: Res<Animations>| {
-            for _ in 0..1000 {
+            for _ in 0..BATCH {
                 spawn_entity(
                     &mut world,
                     &animations,
@@ -134,7 +136,7 @@ fn spawn_entities_on_left_click(
     for e in left_button_mouse_down_events {
         let position = window_to_world(e.coordinate, *window_size);
 
-        for _ in 0..1000 {
+        for _ in 0..BATCH {
             spawn_entity(
                 &mut world,
                 &animations,
@@ -161,7 +163,7 @@ fn despawn_entities_on_right_click(
         .query::<&Drawable>()
         .iter()
         .map(|(entity, _)| entity)
-        .take(1000)
+        .take(BATCH)
         .collect::<Vec<_>>();
 
     for entity in entities.drain(0..) {

@@ -1,15 +1,34 @@
-use std::{fmt::Debug, num::TryFromIntError};
+use std::{fmt::Debug, num::TryFromIntError, rc::Rc};
 
-use derive_more::Deref;
 use yapgeir_graphics_hal::{
     buffer::{BufferKind, BufferUsage},
     draw_descriptor::IndexBinding,
-    index_buffer::Index,
+    index_buffer::{Index, IndexKind},
     Graphics,
 };
 
-#[derive(Clone, Deref)]
-pub struct QuadIndexBuffer<G: Graphics>(IndexBinding<G>);
+pub struct QuadIndexBuffer<G: Graphics> {
+    pub buffer: Rc<G::ByteBuffer>,
+    pub kind: IndexKind,
+}
+
+impl<G: Graphics> QuadIndexBuffer<G> {
+    pub fn bindings(&self) -> IndexBinding<G> {
+        IndexBinding::Some {
+            buffer: self.buffer.clone(),
+            kind: self.kind,
+        }
+    }
+}
+
+impl<G: Graphics> Clone for QuadIndexBuffer<G> {
+    fn clone(&self) -> Self {
+        Self {
+            buffer: self.buffer.clone(),
+            kind: self.kind,
+        }
+    }
+}
 
 #[inline]
 fn create_quad_indices<I>(indices: usize) -> Result<Vec<I>, TryFromIntError>
@@ -40,6 +59,10 @@ impl<G: Graphics> QuadIndexBuffer<G> {
     ) -> Self {
         let indices = create_quad_indices::<I>(size.into()).expect("Unable to create quad indices");
         let buffer = ctx.new_buffer(BufferKind::Index, BufferUsage::Static, &indices);
-        Self(Some(&buffer).into())
+
+        Self {
+            buffer: buffer.bytes,
+            kind: I::KIND,
+        }
     }
 }

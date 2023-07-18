@@ -1,5 +1,5 @@
 use bytemuck::Pod;
-use std::{borrow::Borrow, iter::repeat_with, marker::PhantomData, ops::Deref, rc::Rc};
+use std::{borrow::Borrow, iter::repeat_with, marker::PhantomData, rc::Rc};
 use yapgeir_graphics_hal::{
     buffer::{Buffer, BufferKind, BufferUsage},
     draw_descriptor::{AsVertexBindings, IndexBinding},
@@ -149,7 +149,7 @@ where
             let descriptor = ctx.new_draw_descriptor(
                 shader.clone(),
                 match &indices {
-                    BatchIndices::Quad(quad) => quad.deref().clone(),
+                    BatchIndices::Quad(quad) => quad.bindings(),
                     BatchIndices::Primitive(_) => IndexBinding::None,
                 },
                 &[vertex.bindings()],

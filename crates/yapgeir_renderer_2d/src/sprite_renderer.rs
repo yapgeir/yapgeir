@@ -2,6 +2,7 @@ use bytemuck::{Pod, Zeroable};
 use std::rc::Rc;
 use yapgeir_geometry::{Box2D, Rect};
 use yapgeir_graphics_hal::{
+    buffer::ByteBuffer,
     draw_params::{Depth as DrawDepth, DepthStencilTest, DrawParameters},
     frame_buffer::FrameBuffer,
     sampler::Sampler,
@@ -294,13 +295,17 @@ where
         let shader = Rc::new(ctx.new_shader(&SHADER.into()));
         let uniforms = Rc::new(ctx.new_uniform_buffer(&SpriteUniforms::default()));
 
+        let index_count = quad_index_buffer.buffer.len() / quad_index_buffer.kind.size();
+        let max_quads = index_count / 6;
+        let batch_size = max_quads.min(u16::MAX as usize);
+
         Self {
             renderer: BatchRenderer::new(
                 ctx,
                 shader,
                 BatchIndices::Quad(quad_index_buffer),
                 uniforms,
-                (u16::MAX as usize, 1),
+                (batch_size, 1),
             ),
             draw_parameters: DrawParameters {
                 // Use depth buffer to "sort" sprites by their depth on GPU.
