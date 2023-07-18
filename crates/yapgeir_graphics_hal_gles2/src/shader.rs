@@ -60,8 +60,14 @@ pub struct GlesShader<B: WindowBackend> {
 pub unsafe fn compile_program(gl: &glow::Context, source: &TextShaderSource) -> glow::Program {
     let program = gl.create_program().expect("Cannot create program");
     let shaders = [
-        (glow::VERTEX_SHADER, source.vertex),
-        (glow::FRAGMENT_SHADER, source.fragment),
+        (
+            glow::VERTEX_SHADER,
+            &pre_process_vertex_shader(source.vertex),
+        ),
+        (
+            glow::FRAGMENT_SHADER,
+            &pre_process_fragment_shader(source.fragment),
+        ),
     ]
     .map(|(kind, source)| {
         let shader = gl.create_shader(kind).expect("Cannot create shader");
@@ -87,6 +93,22 @@ pub unsafe fn compile_program(gl: &glow::Context, source: &TextShaderSource) -> 
     }
 
     program
+}
+
+fn pre_process_vertex_shader(code: &str) -> String {
+    #[cfg(target_os = "emscripten")]
+    return code.replace("#version 120", "#version 100");
+
+    #[cfg(not(target_os = "emscripten"))]
+    return code.to_string();
+}
+
+fn pre_process_fragment_shader(code: &str) -> String {
+    #[cfg(target_os = "emscripten")]
+    return code.replace("#version 120", "#version 100\n #define WEB\n");
+
+    #[cfg(not(target_os = "emscripten"))]
+    return code.to_string();
 }
 
 unsafe fn get_uniforms(

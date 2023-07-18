@@ -31,7 +31,7 @@ use {egui::epaint::Mesh, std::rc::Rc};
 #[cfg(not(target_os = "vita"))]
 const SHADER: TextShaderSource = TextShaderSource {
     vertex: r#"
-        // #version 100
+        #version 120
 
         uniform vec2 u_screen_size;
 
@@ -56,8 +56,11 @@ const SHADER: TextShaderSource = TextShaderSource {
         }
     "#,
     fragment: r#"
-        // #version 100
+        #version 120
+
+        #ifdef WEB
         precision highp float;
+        #endif
 
         uniform sampler2D u_sampler;
 
