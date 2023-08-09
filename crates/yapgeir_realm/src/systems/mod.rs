@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use derive_more::{Deref, DerefMut};
 
-use crate::Resources;
+use crate::{Commands, Resources};
 
 pub use errors::*;
 pub use filter::*;
@@ -46,6 +46,7 @@ impl SystemRunner {
             if resources.get::<Exit>().is_some_and(|e| e.0) {
                 return false;
             }
+            Commands::run(resources)
         }
 
         true
@@ -128,7 +129,7 @@ macro_rules! impl_systems {
     };
 }
 
-impl_systems!(A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15, A16);
+impl_systems!(A16, A15, A14, A13, A12, A11, A10, A9, A8, A7, A6, A5, A4, A3, A2, A1);
 
 #[cfg(test)]
 mod tests {

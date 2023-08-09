@@ -1,8 +1,10 @@
+mod commands;
 mod initializer;
 mod plugin;
 mod resources;
 mod systems;
 
+pub use commands::*;
 pub use initializer::*;
 pub use plugin::*;
 pub use resources::*;
@@ -20,6 +22,7 @@ impl Default for Realm {
         let systems = Default::default();
         let mut resources: Resources = Default::default();
         resources.insert(Exit::default());
+        resources.insert(Commands::default());
 
         Self { resources, systems }
     }

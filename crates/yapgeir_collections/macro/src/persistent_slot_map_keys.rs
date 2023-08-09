@@ -1,3 +1,4 @@
+use convert_case::{Case, Casing};
 use darling::util::parse_expr;
 use darling::{ast, util, FromDeriveInput, FromField};
 use quote::{quote, ToTokens};
@@ -19,6 +20,9 @@ pub struct PersistentSlotMapKeys {
     data: ast::Data<util::Ignored, PersistentSlotMapKeysField>,
 
     key_type: Option<syn::Path>,
+
+    prefix: Option<String>,
+    rename_all: Option<String>,
 }
 
 impl ToTokens for PersistentSlotMapKeys {
@@ -28,6 +32,8 @@ impl ToTokens for PersistentSlotMapKeys {
             ref generics,
             ref data,
             ref key_type,
+            ref prefix,
+            ref rename_all,
         } = *self;
 
         let (imp, ty, wher) = generics.split_for_impl();
@@ -44,7 +50,14 @@ impl ToTokens for PersistentSlotMapKeys {
             let key = match &field.slot {
                 Some(name) => name.to_owned(),
                 None => {
-                    let slot = format!("{}", field_ident);
+                    let field_ident = format!("{}", field_ident);
+                    let field_ident = match rename_all.as_deref() {
+                        Some("kebab-case") => field_ident.to_case(Case::Kebab),
+                        None => field_ident,
+                        _ => panic!("Unsupported rename_all value: {:?}", rename_all),
+                    };
+
+                    let slot = format!("{}{}", prefix.as_deref().unwrap_or_default(), field_ident);
                     parse_quote!(#slot)
                 }
             };

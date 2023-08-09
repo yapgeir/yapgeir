@@ -73,6 +73,14 @@ impl Index<AnimationKey> for AnimationStorage {
     }
 }
 
+impl Index<AnimationSequenceKey> for AnimationStorage {
+    type Output = AnimationSequence;
+
+    fn index(&self, key: AnimationSequenceKey) -> &Self::Output {
+        &self.0[Into::<Slot>::into(key)]
+    }
+}
+
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "reflection", derive(Reflect))]
 pub struct Frame {
@@ -219,7 +227,8 @@ fn update(mut world: ResMut<World>, store: Res<AnimationStorage>, delta: Res<Del
 
         a.frame = FrameState::Frame(frame);
 
-        *drawable = store[a.animation].frames[frame.index as usize].clone();
+        let animation = &store[a.animation];
+        *drawable = animation.frames[frame.index as usize].clone();
     }
 }
 

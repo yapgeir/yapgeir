@@ -53,7 +53,7 @@ fn process_input(
     gui.platform.set_pixels_per_point(Some(**ppt));
 }
 
-// #[cfg_attr(feature = "instrumentation", yapgeir_instrument::instrument)]
+#[cfg_attr(feature = "instrumentation", yapgeir_instrument::instrument)]
 fn tesselate<G: Graphics>(
     mut gui: ResMut<Egui>,
     mut renderer: ResMut<EguiRenderer<G>>,

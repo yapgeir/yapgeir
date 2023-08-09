@@ -56,7 +56,7 @@ impl<const N: usize, B: CastToUsize> Buttons<N, B> {
     }
 
     #[inline]
-    pub fn pressed(&self, code: B) -> bool {
+    pub fn just_pressed(&self, code: B) -> bool {
         let code = code.as_usize();
         self.pressed[code]
     }

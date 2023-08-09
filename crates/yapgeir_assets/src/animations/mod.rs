@@ -20,9 +20,6 @@ pub struct Animation {
     pub frame_time: f32,
 }
 
-#[derive(Debug, Clone, Deref)]
-pub struct AnimationSequence(pub Vec<Animation>);
-
 impl Animation {
     #[inline]
     pub fn is_last_frame(&self, frame: u8) -> bool {
@@ -32,5 +29,30 @@ impl Animation {
     #[inline]
     pub fn is_end(&self, frame: u8) -> bool {
         self.is_last_frame(frame) && self.kind == AnimationKind::Single
+    }
+
+    pub fn duration(&self) -> f32 {
+        self.frames.len() as f32 * self.frame_time
+    }
+}
+
+#[derive(Debug, Clone, Deref)]
+pub struct AnimationSequence {
+    #[deref(forward)]
+    animations: Vec<Animation>,
+    duration: f32,
+}
+
+impl AnimationSequence {
+    pub fn duration(&self) -> f32 {
+        self.duration
+    }
+
+    pub fn new(animations: Vec<Animation>) -> Self {
+        let duration = animations.iter().map(Animation::duration).sum();
+        Self {
+            animations,
+            duration,
+        }
     }
 }

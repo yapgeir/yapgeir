@@ -53,7 +53,7 @@ impl AnimationFile {
 
                 (
                     animation.name.clone(),
-                    AnimationSequence(vec![Animation {
+                    AnimationSequence::new(vec![Animation {
                         frames,
                         frame_time: animation.speed,
                         kind: animation.kind,
@@ -68,10 +68,10 @@ impl AnimationFile {
             .map(|s| {
                 (
                     s.name.clone(),
-                    AnimationSequence(
+                    AnimationSequence::new(
                         s.animations
                             .iter()
-                            .map(|a| implicit_sequences[a].0[0].clone())
+                            .map(|a| implicit_sequences[a][0].clone())
                             .collect(),
                     ),
                 )
