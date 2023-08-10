@@ -1,6 +1,6 @@
 pub use yapgeir_graphics_hal_macro::Samplers;
 
-use crate::{Graphics, Size, Rect};
+use crate::{Graphics, Rect, Size};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PixelFormat {

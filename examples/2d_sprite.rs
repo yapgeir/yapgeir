@@ -169,9 +169,8 @@ fn initialize_rendering<G: Graphics>(realm: &mut Realm) {
         .add_plugin(yapgeir_renderer_2d::plugin::<G>)
         .initialize_resource_with(|graphics: Res<G>| -> G::Texture {
             let (tile_image, tile_size) = decode_png(include_bytes!("assets/tile.png")).unwrap();
-            let texture = graphics.new_texture(PixelFormat::Rgba, tile_size, Some(&tile_image));
 
-            texture
+            graphics.new_texture(PixelFormat::Rgba, tile_size, Some(&tile_image))
         })
         .initialize_resource_with(
             |graphics: Res<G>, quad_index_buffer: Res<QuadIndexBuffer<G>>| -> SpriteRenderer<G> {

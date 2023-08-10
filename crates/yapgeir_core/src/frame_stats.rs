@@ -1,7 +1,10 @@
 use yapgeir_realm::{Realm, Res, ResMut};
 
 #[cfg(feature = "reflection")]
-use yapgeir_reflection::{bevy_reflect::{self, Reflect}, RealmExtensions};
+use yapgeir_reflection::{
+    bevy_reflect::{self, Reflect},
+    RealmExtensions,
+};
 
 use crate::Delta;
 
@@ -36,7 +39,5 @@ pub fn plugin(realm: &mut Realm) {
     #[cfg(feature = "reflection")]
     realm.register_type::<FrameStats>();
 
-    realm
-        .initialize_resource::<FrameStats>()
-        .add_system(update);
+    realm.initialize_resource::<FrameStats>().add_system(update);
 }
